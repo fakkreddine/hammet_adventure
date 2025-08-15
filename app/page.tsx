@@ -16,9 +16,11 @@ export default function HomePage() {
       <BenefitsSection />
       <AdventuresSection />
       <GallerySection />
-      <TestimonialsSection />
-      <WhyChooseSection />
       <NewsletterSection />
+      <TestimonialsSection />
+      
+      
+      <WhyChooseSection />
       <Footer />
     </main>
   )

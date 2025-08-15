@@ -1,6 +1,12 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -109,10 +115,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  /* Adding elegant typography fonts */
-  --font-serif: var(--font-playfair);
-  --font-sans: var(--font-inter);
 }
 
 @layer base {
@@ -120,112 +122,11 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-sans;
-    scroll-behavior: smooth;
+    @apply bg-background text-foreground;
   }
 }
 
-/* Adding elegant custom styles and animations */
-@layer components {
-  /* Glass morphism effect */
-  .glass {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-
-  /* Gradient backgrounds */
-  .gradient-hero {
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdf4 100%);
-  }
-
-  .gradient-benefits {
-    background: linear-gradient(135deg, #16a34a 0%, #15803d 50%, #166534 100%);
-  }
-
-  /* Elegant hover effects */
-  .elegant-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .elegant-hover:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  }
-
-  /* Pulse glow animation */
-  .animate-pulse-glow {
-    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  @keyframes pulse-glow {
-    0%,
-    100% {
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-    }
-    50% {
-      box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
-    }
-  }
-
-  /* Scroll reveal animations */
-  .scroll-reveal {
-    opacity: 0;
-    transform: translateY(50px);
-    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .scroll-reveal.revealed {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* Floating animation */
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  @keyframes float {
-    0%,
-    100% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-20px);
-    }
-  }
-
-  /* Elegant text shadows */
-  .text-shadow-elegant {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #f1f5f9;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #16a34a;
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #15803d;
-  }
-}
-
-/* Adding responsive typography improvements */
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .font-display {
-    font-display: swap;
-  }
+/* Added radial gradient utility for the black hole sphere effect */
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-stops));
 }

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Star, Quote } from "lucide-react"
+import CountUp from '../components/my_coponent/CountUp'
+import { motion } from "framer-motion"
 
 const testimonials = [
   {
@@ -183,22 +185,115 @@ export default function TestimonialsSection() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 text-center">
           <div>
-            <div className="text-3xl font-bold text-green-600 mb-2">2000+</div>
-            <div className="text-gray-600">Clients Satisfaits</div>
-          </div>
+            <motion.div
+     
+      initial={{ opacity: 0, y: 50 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true, amount: 0.3 }}
+  transition={{ duration: 0.6, ease: "easeOut" }} // only run once
+      
+    >
+        <div className="text-3xl font-bold text-green-600 mb-2">
+              <CountUp
+                from={0}
+                to={2000}
+                separator=","
+                direction="up"
+                duration={1}
+                className="count-up-text" onStart={undefined} onEnd={undefined}/>+
+              </div>
+              <div className="text-gray-600">Clients Satisfaits</div>
+              
+    </motion.div>
+           </div>
+            
+
+
+
           <div>
-            <div className="text-3xl font-bold text-green-600 mb-2">4.9/5</div>
-            <div className="text-gray-600">Note Moyenne</div>
+            <div>
+            <motion.div
+     
+      initial={{ opacity: 0, y: 50 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true, amount: 0.3 }}
+  transition={{ duration: 0.6, ease: "easeOut" , delay:0.3 }} // only run once
+      
+    >
+        <div className="text-3xl font-bold text-green-600 mb-2">
+              <CountUp
+                from={0}
+                to={4.5}
+                
+                direction="up"
+                duration={1}
+                className="count-up-text" onStart={undefined} onEnd={undefined}/>
+                <span className="text-green-600 mb-2">/5</span>
+              </div>
+              <div className="text-gray-600">Note Moyenne</div>
+              
+    </motion.div>
+           </div>
           </div>
-          <div>
-            <div className="text-3xl font-bold text-green-600 mb-2">5 ans</div>
-            <div className="text-gray-600">D'Expérience</div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-green-600 mb-2">100%</div>
-            <div className="text-gray-600">Sécurisé</div>
-          </div>
-        </div>
+
+<div>
+<motion.div
+     
+      initial={{ opacity: 0, y: 50 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  
+  viewport={{ once: true, amount: 0.5 }}
+  transition={{ duration: 0.6, ease: "easeOut" ,delay: 0.6 }} // only run once
+
+    >
+        <div className="text-3xl font-bold text-green-600 mb-2">
+              <CountUp
+                from={0}
+                to={5}
+                
+                direction="up"
+                duration={1.5}
+                className="count-up-text" onStart={undefined} onEnd={undefined}/>
+                <span className="text-green-600 mb-2"> ans</span>
+              </div>
+              <div className="text-gray-600">D'Expérience</div>
+              
+    </motion.div>
+           </div>
+           <div>
+           <motion.div
+     
+      initial={{ opacity: 0, y: 50 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true, amount: 0.3 }}
+  transition={{ duration: 0.6, ease: "easeOut" ,delay: 0.9 }} // only run once
+      
+    >
+        <div className="text-3xl font-bold text-green-600 mb-2">
+              <CountUp
+                from={0}
+                to={100}
+                
+                direction="up"
+                duration={1}
+                className="count-up-text" onStart={undefined} onEnd={undefined}/>
+                <span className="text-green-600 mb-2">%</span>
+              </div>
+              <div className="text-gray-600">Sécurisé</div>
+              
+    </motion.div>
+           </div>
+
+
+
+
+
+
+
+
+
+
+         </div>
       </div>
     </section>
   )
