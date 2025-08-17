@@ -1,24 +1,24 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Playfair_Display, Inter } from "next/font/google"
+import { Space_Grotesk, DM_Sans } from "next/font/google"
 import "./globals.css"
 
-const playfair = Playfair_Display({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-playfair",
+  variable: "--font-space-grotesk",
 })
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-dm-sans",
 })
 
 export const metadata: Metadata = {
-  title: "Carthage Quad Hammamet - Aventures Quad, Catamaran & Dromadaire",
+  title: "Carthage QuadHAMMAMET ADVENTURES - Premium Quad Biking in Tunisia",
   description:
-    "Vivez l'aventure ultime à Hammamet ! Quad au coucher du soleil, excursions catamaran et balades dromadaire. Réservation facile, guides experts, souvenirs inoubliables.",
+    "Discover breathtaking landscapes of Tunisia with premium quad biking experiences in Hammamet. Book your unforgettable adventure today!",
   generator: "v0.app",
 }
 
@@ -28,8 +28,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr" className={`${playfair.variable} ${inter.variable} antialiased`}>
-      <body>{children}</body>
+    <html lang="en">
+      <head>
+        <style>{`
+html {
+  font-family: ${spaceGrotesk.style.fontFamily};
+  --font-sans: ${spaceGrotesk.variable};
+  --font-serif: ${dmSans.variable};
+}
+        `}</style>
+      </head>
+      <body className={`${spaceGrotesk.className} ${dmSans.variable}`}>{children}</body>
     </html>
   )
 }

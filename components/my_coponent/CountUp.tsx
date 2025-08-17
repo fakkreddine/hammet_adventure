@@ -1,106 +1,70 @@
-import { useEffect, useRef } from "react";
-import { useInView, useMotionValue, useSpring } from "motion/react";
+"use client"
+
+import { useEffect, useState } from "react"
+import { useInView } from "framer-motion"
+import { useRef } from "react"
+
+interface CountUpProps {
+  from: number
+  to: number
+  duration: number
+  separator?: string
+  direction: "up" | "down"
+  className?: string
+  onStart?: () => void
+  onEnd?: () => void
+}
 
 export default function CountUp({
+  from,
   to,
-  from = 0,
-  direction = "up",
-  delay = 0,
-  duration = 2,
-  className = "",
-  startWhen = true,
+  duration,
   separator = "",
+  direction,
+  className = "",
   onStart,
   onEnd,
-}) {
-  const ref = useRef(null);
-  const motionValue = useMotionValue(direction === "down" ? to : from);
+}: CountUpProps) {
+  const [count, setCount] = useState(from)
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true })
 
-  const damping = 20 + 40 * (1 / duration);
-  const stiffness = 100 * (1 / duration);
+  useEffect(() => {
+    if (!isInView) return
 
-  const springValue = useSpring(motionValue, {
-    damping,
-    stiffness,
-  });
+    onStart?.()
 
-  const isInView = useInView(ref, { once: true, margin: "0px" });
+    const startTime = Date.now()
+    const difference = to - from
 
-  const getDecimalPlaces = (num) => {
-    const str = num.toString();
+    const updateCount = () => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / (duration * 1000), 1)
 
-    if (str.includes(".")) {
-      const decimals = str.split(".")[1];
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4)
+      const currentCount = from + difference * easeOutQuart
 
-      if (parseInt(decimals) !== 0) {
-        return decimals.length;
+      setCount(currentCount)
+
+      if (progress < 1) {
+        requestAnimationFrame(updateCount)
+      } else {
+        setCount(to)
+        onEnd?.()
       }
     }
 
-    return 0;
-  };
+    requestAnimationFrame(updateCount)
+  }, [isInView, from, to, duration, onStart, onEnd])
 
-  const maxDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(to));
+  const formatNumber = (num: number) => {
+    const rounded = Math.round(num * 100) / 100
+    return separator ? rounded.toLocaleString() : rounded.toString()
+  }
 
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.textContent = String(direction === "down" ? to : from);
-    }
-  }, [from, to, direction]);
-
-  useEffect(() => {
-    if (isInView && startWhen) {
-      if (typeof onStart === "function") onStart();
-
-      const timeoutId = setTimeout(() => {
-        motionValue.set(direction === "down" ? from : to);
-      }, delay * 1000);
-
-      const durationTimeoutId = setTimeout(() => {
-        if (typeof onEnd === "function") onEnd();
-      }, delay * 1000 + duration * 1000);
-
-      return () => {
-        clearTimeout(timeoutId);
-        clearTimeout(durationTimeoutId);
-      };
-    }
-  }, [
-    isInView,
-    startWhen,
-    motionValue,
-    direction,
-    from,
-    to,
-    delay,
-    onStart,
-    onEnd,
-    duration,
-  ]);
-
-  useEffect(() => {
-    const unsubscribe = springValue.on("change", (latest) => {
-      if (ref.current) {
-        const hasDecimals = maxDecimals > 0;
-
-        const options = {
-          useGrouping: !!separator,
-          minimumFractionDigits: hasDecimals ? maxDecimals : 0,
-          maximumFractionDigits: hasDecimals ? maxDecimals : 0,
-        };
-
-        const formattedNumber = Intl.NumberFormat("en-US", options).format(
-          latest
-        );
-
-        ref.current.textContent = separator
-          ? formattedNumber.replace(/,/g, separator)
-          : formattedNumber;
-      }
-    });
-
-    return () => unsubscribe();
-  }, [springValue, separator, maxDecimals]);
-
-  return <span className={className} ref={ref} />;
+  return (
+    <span ref={ref} className={className}>
+      {formatNumber(count)}
+    </span>
+  )
 }
