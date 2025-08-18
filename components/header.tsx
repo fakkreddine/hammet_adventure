@@ -4,13 +4,14 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, ShoppingCart, User } from "lucide-react"
+import { LanguageSelector } from "@/components/language-selector"
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false)
 
   const navigation = [
     { name: "Home", href: "#" },
-    { name: "Booking", href: "#booking" },
+    { name: "Booking", href: "/booking" },
     { name: "About", href: "#about" },
   ]
 
@@ -43,6 +44,7 @@ export function Header() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center space-x-4">
+          <LanguageSelector />
           <Button variant="ghost" size="sm" className="relative">
             <ShoppingCart className="h-4 w-4" />
             <span className="sr-only">Shopping cart</span>
@@ -50,11 +52,15 @@ export function Header() {
               0
             </span>
           </Button>
-          <Button variant="outline" size="sm">
-            <User className="h-4 w-4 mr-2" />
-            Login
+          <Button variant="outline" size="sm" asChild>
+            <a href="/login">
+              <User className="h-4 w-4 mr-2" />
+              Login
+            </a>
           </Button>
-          <Button size="sm">Sign Up</Button>
+          <Button size="sm" asChild>
+            <a href="/signup">Sign Up</a>
+          </Button>
         </div>
 
         {/* Mobile Menu */}
@@ -78,11 +84,18 @@ export function Header() {
                 </a>
               ))}
               <div className="border-t pt-4 space-y-2">
-                <Button variant="outline" className="w-full justify-start bg-transparent">
-                  <User className="h-4 w-4 mr-2" />
-                  Login
+                <div className="flex justify-center pb-2">
+                  <LanguageSelector />
+                </div>
+                <Button variant="outline" className="w-full justify-start bg-transparent" asChild>
+                  <a href="/login">
+                    <User className="h-4 w-4 mr-2" />
+                    Login
+                  </a>
                 </Button>
-                <Button className="w-full">Sign Up</Button>
+                <Button className="w-full" asChild>
+                  <a href="/signup">Sign Up</a>
+                </Button>
                 <Button variant="ghost" className="w-full justify-start">
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Cart (0)

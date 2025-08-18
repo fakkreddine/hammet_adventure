@@ -3,6 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+
+
+/* Move body back to normal */
+body { top: 0 !important; }
+
+/* Optional: hide the "translate" icon in page */
+.goog-te-gadget { display: none !important; }
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

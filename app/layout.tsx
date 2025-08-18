@@ -35,7 +35,9 @@ html {
   font-family: ${spaceGrotesk.style.fontFamily};
   --font-sans: ${spaceGrotesk.variable};
   --font-serif: ${dmSans.variable};
-}
+  
+
+
         `}</style>
       </head>
       <body className={`${spaceGrotesk.className} ${dmSans.variable}`}>{children}</body>
