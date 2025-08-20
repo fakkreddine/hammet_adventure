@@ -19,6 +19,7 @@ import { Header } from "@/components/header"
 import { searchFormSchema, type SearchFormData, type Adventure } from "@/lib/validations"
 import { searchAdventures, initializeSearchIndex } from "@/lib/meilisearch"
 import { useDebounce } from "@/hooks/use-debounce"
+import Link from "next/link"
 
 const adventures: Adventure[] = [
   {
@@ -517,85 +518,79 @@ export default function BookingPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 group border-amber-100">
+                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group border-0 shadow-lg">
                     <div className="relative">
                       <img
-                        src={adventure.image || "/placeholder.svg?height=300&width=400&query=quad adventure tunisia"}
+                        src={adventure.image || "/placeholder.svg?height=240&width=400&query=quad adventure tunisia"}
                         alt={adventure.title}
-                        className="w-full h-56 lg:h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute top-4 left-4">
-                        <Badge className="bg-amber-500 text-white shadow-lg">{adventure.category}</Badge>
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-amber-500 text-white shadow-md text-xs px-2 py-1">
+                          {adventure.difficulty}
+                        </Badge>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-4 right-4 bg-white/90 hover:bg-white shadow-lg"
+                        className="absolute top-3 right-3 bg-white/90 hover:bg-white shadow-md h-8 w-8 p-0"
                       >
                         <Heart className="w-4 h-4" />
                       </Button>
-                      <div className="absolute bottom-4 left-4">
-                        <Badge variant="secondary" className="bg-white/95 text-gray-900 shadow-lg">
-                          {adventure.difficulty}
-                        </Badge>
-                      </div>
                     </div>
 
-                    <CardContent className="p-6 lg:p-8">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="text-xl font-semibold text-gray-900 group-hover:text-amber-600 transition-colors line-clamp-2">
+                    <CardContent className="p-5">
+                      <div className="mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight">
                           {adventure.title}
                         </h3>
-                        <div className="text-right ml-4">
-                          <div className="text-2xl lg:text-3xl font-bold text-amber-600">{adventure.price}€</div>
-                          <div className="text-sm text-gray-500">par personne</div>
+                        <div className="flex items-center text-sm text-gray-600 mb-2">
+                          <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                          <span className="truncate">{adventure.location}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center text-sm text-gray-600 mb-4">
-                        <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{adventure.location}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+                      <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
                         <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-2" />
-                          {adventure.duration}
+                          <Clock className="w-4 h-4 mr-1" />
+                          <span>{adventure.duration}</span>
                         </div>
                         <div className="flex items-center">
-                          <Users className="w-4 h-4 mr-2" />
-                          {adventure.groupSize}
+                          <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
+                          <span className="font-medium">{adventure.rating}</span>
+                          <span className="text-gray-500 ml-1">({adventure.reviews})</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center mb-4">
-                        <div className="flex items-center">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="ml-2 text-sm font-medium">{adventure.rating}</span>
-                          <span className="ml-2 text-sm text-gray-500">({adventure.reviews} avis)</span>
-                        </div>
-                      </div>
-
-                      {adventure.description && (
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{adventure.description}</p>
-                      )}
-
-                      <div className="flex flex-wrap gap-2 mb-6">
-                        {adventure.features.slice(0, 3).map((feature) => (
-                          <Badge key={feature} variant="outline" className="text-xs border-amber-200 text-amber-700">
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {adventure.features.slice(0, 2).map((feature:any) => (
+                          <Badge
+                            key={feature}
+                            variant="outline"
+                            className="text-xs border-amber-200 text-amber-700 px-2 py-0.5"
+                          >
                             {feature}
                           </Badge>
                         ))}
-                        {adventure.features.length > 3 && (
-                          <Badge variant="outline" className="text-xs border-gray-200 text-gray-500">
-                            +{adventure.features.length - 3} autres
+                        {adventure.features.length > 2 && (
+                          <Badge variant="outline" className="text-xs border-gray-200 text-gray-500 px-2 py-0.5">
+                            +{adventure.features.length - 2}
                           </Badge>
                         )}
                       </div>
 
-                      <Button className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold h-12">
-                        Réserver Maintenant
-                      </Button>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-2xl font-bold text-amber-600">{adventure.price}€</div>
+                          <div className="text-xs text-gray-500">par personne</div>
+                        </div>
+                        <Button
+                          className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium px-4 py-2"
+                          asChild
+                        >
+                          <Link href={`/booking/${adventure.id}`}>Voir Détails</Link>
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
