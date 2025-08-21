@@ -20,6 +20,7 @@ import { searchFormSchema, type SearchFormData, type Adventure } from "@/lib/val
 import { searchAdventures, initializeSearchIndex } from "@/lib/meilisearch"
 import { useDebounce } from "@/hooks/use-debounce"
 import Link from "next/link"
+import { Footer } from "@/components/footer"
 
 const adventures: Adventure[] = [
   {
@@ -656,6 +657,7 @@ export default function BookingPage() {
           </Card>
         </motion.div>
       </section>
+      <Footer />
     </div>
   )
 }

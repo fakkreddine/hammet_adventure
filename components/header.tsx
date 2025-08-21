@@ -14,7 +14,7 @@ export function Header() {
     { name: "Accueil", href: "/" },
     { name: "Réservation", href: "/booking" },
     { name: "À propos", href: "#about" },
-    { name: "Contact", href: "#contact" },
+    { name: "Contact", href: "/contact" },
   ]
 
   return (
