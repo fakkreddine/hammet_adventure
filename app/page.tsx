@@ -7,10 +7,12 @@ import WhyChooseUs from "@/components/why-choose-us"
 import AdventurePackages from "@/components/adventure-packages"
 import { NewsletterSection } from "@/components/newsletter-section"
 import { Footer } from "@/components/footer"
+import ProtectedPage from "./protected/page"
 
 export default function HomePage() {
   return (
     <main className="min-h-screen">
+     
       <Header />
       <HeroSection />
       <WhyChooseUs />
@@ -20,6 +22,7 @@ export default function HomePage() {
       <AdventuresSection />
       <NewsletterSection />
       <Footer />
+
     </main>
   )
 }

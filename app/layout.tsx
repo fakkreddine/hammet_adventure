@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Space_Grotesk, DM_Sans } from "next/font/google"
 import "./globals.css"
+import { AuthProvider } from "@/contexts/auth-context"
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -40,7 +41,11 @@ html {
 
         `}</style>
       </head>
-      <body className={`${spaceGrotesk.className} ${dmSans.variable}`}>{children}</body>
+      <body className={`${spaceGrotesk.className} ${dmSans.variable}`}>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   )
 }

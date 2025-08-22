@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -24,23 +26,71 @@ export default function SignupPage() {
     confirmPassword: "",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.password !== formData.confirmPassword) {
-      alert("Les mots de passe ne correspondent pas")
+      setError("Les mots de passe ne correspondent pas")
       return
     }
+
     setIsLoading(true)
-    // Simulate signup process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsLoading(false)
-    console.log("[v0] Signup attempt:", formData)
+    setError(null)
+
+    const supabase = createClient()
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/protected`,
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+          },
+        },
+      })
+
+      if (error) throw error
+
+      router.push("/auth/signup-success?email=" + encodeURIComponent(formData.email))
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Une erreur s'est produite")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleSocialSignup = (provider: string) => {
-    console.log("[v0] Social signup with:", provider)
-    // Implement social signup logic here
+  const handleSocialSignup = async (provider: "google" | "facebook") => {
+    if (provider !== "google") {
+      console.log("[v0] Social signup with:", provider)
+      // Facebook OAuth not implemented yet
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    const supabase = createClient()
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) throw error
+      // OAuth redirect will handle the rest
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Une erreur s'est produite")
+      setIsLoading(false)
+    }
   }
 
   const updateFormData = (field: string, value: string) => {
@@ -50,7 +100,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center p-4">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('/placeholder-1jwzi.png')] opacity-5"></div>
+      <div className="absolute inset-0 bg-[url('/images/pattern.png')] opacity-5"></div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -85,6 +135,7 @@ export default function SignupPage() {
                 onClick={() => handleSocialSignup("google")}
                 variant="outline"
                 className="w-full h-12 border-gray-300 hover:bg-gray-50 transition-all duration-200"
+                disabled={isLoading}
               >
                 <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                   <path
@@ -111,6 +162,7 @@ export default function SignupPage() {
                 onClick={() => handleSocialSignup("facebook")}
                 variant="outline"
                 className="w-full h-12 border-gray-300 hover:bg-gray-50 transition-all duration-200"
+                disabled={isLoading}
               >
                 <svg className="w-5 h-5 mr-3" fill="#1877F2" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -242,6 +294,10 @@ export default function SignupPage() {
                 </div>
               </div>
 
+              {error && (
+                <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">{error}</div>
+              )}
+
               <div className="flex items-start space-x-2">
                 <input
                   type="checkbox"
@@ -279,7 +335,7 @@ export default function SignupPage() {
 
             <div className="text-center text-sm text-gray-600">
               Déjà un compte?{" "}
-              <Link href="/login" className="text-amber-600 hover:text-amber-700 font-semibold">
+              <Link href="/auth/login" className="text-amber-600 hover:text-amber-700 font-semibold">
                 Se connecter
               </Link>
             </div>

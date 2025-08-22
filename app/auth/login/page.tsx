@@ -11,31 +11,75 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate login process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsLoading(false)
-    console.log("[v0] Login attempt:", { email, password })
+    setError(null)
+
+    const supabase = createClient()
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) throw error
+
+      router.push("/protected")
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Une erreur s'est produite")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleSocialLogin = (provider: string) => {
-    console.log("[v0] Social login with:", provider)
-    // Implement social login logic here
+  const handleSocialLogin = async (provider: "google" | "facebook") => {
+    if (provider !== "google") {
+      console.log("[v0] Social login with:", provider)
+      // Facebook OAuth not implemented yet
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    const supabase = createClient()
+
+    try {
+      const {data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `http://localhost:3000/auth/callback`,
+        },
+      })
+    if (data?.url) {
+      // 👇 open Supabase OAuth URL in new tab
+      window.open(data.url, "_blank", "width=500,height=600")
+    }
+      if (error) throw error
+      // OAuth redirect will handle the rest
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Une erreur s'est produite")
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center p-4">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('/placeholder-1jwzi.png')] opacity-5"></div>
+      <div className="absolute inset-0 bg-[url('/images/pattern.png')] opacity-5"></div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -70,6 +114,7 @@ export default function LoginPage() {
                 onClick={() => handleSocialLogin("google")}
                 variant="outline"
                 className="w-full h-12 border-gray-300 hover:bg-gray-50 transition-all duration-200"
+                disabled={isLoading}
               >
                 <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                   <path
@@ -96,6 +141,7 @@ export default function LoginPage() {
                 onClick={() => handleSocialLogin("facebook")}
                 variant="outline"
                 className="w-full h-12 border-gray-300 hover:bg-gray-50 transition-all duration-200"
+                disabled={isLoading}
               >
                 <svg className="w-5 h-5 mr-3" fill="#1877F2" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -154,12 +200,16 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {error && (
+                <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">{error}</div>
+              )}
+
               <div className="flex items-center justify-between">
                 <label className="flex items-center space-x-2 text-sm">
                   <input type="checkbox" className="rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
                   <span className="text-gray-600">Se souvenir de moi</span>
                 </label>
-                <Link href="/forgot-password" className="text-sm text-amber-600 hover:text-amber-700">
+                <Link href="/auth/forgot-password" className="text-sm text-amber-600 hover:text-amber-700">
                   Mot de passe oublié?
                 </Link>
               </div>
@@ -183,7 +233,7 @@ export default function LoginPage() {
 
             <div className="text-center text-sm text-gray-600">
               Pas encore de compte?{" "}
-              <Link href="/signup" className="text-amber-600 hover:text-amber-700 font-semibold">
+              <Link href="/auth/signup" className="text-amber-600 hover:text-amber-700 font-semibold">
                 Créer un compte
               </Link>
             </div>

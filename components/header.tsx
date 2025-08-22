@@ -6,9 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, ShoppingCart, User, X } from "lucide-react"
 import { LanguageSelector } from "@/components/language-selector"
+import { useAuth, useUserProfile } from "@/hooks/use-auth"
+import Link from "next/link"
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false)
+
+  const { user, loading, signOut } = useAuth()
+  const { profile } = useUserProfile()
+
+  const handleSignOut = async () => {
+    await signOut()
+  }
 
   const navigation = [
     { name: "Accueil", href: "/" },
@@ -56,6 +65,7 @@ export function Header() {
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center space-x-4">
           <LanguageSelector />
+
           <Button variant="ghost" size="sm" className="relative hover:bg-amber-50">
             <ShoppingCart className="h-4 w-4" />
             <span className="sr-only">Panier</span>
@@ -63,19 +73,34 @@ export function Header() {
               0
             </span>
           </Button>
-          <Button variant="outline" size="sm" className="border-amber-200 hover:bg-amber-50 bg-transparent" asChild>
-            <a href="/login">
-              <User className="h-4 w-4 mr-2" />
-              Connexion
-            </a>
-          </Button>
-          <Button
-            size="sm"
-            className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
-            asChild
-          >
-            <a href="/signup">S'inscrire</a>
-          </Button>
+
+          {loading ? (
+            <div className="h-8 w-20 bg-gray-200 rounded animate-pulse"></div>
+          ) : !user ? (
+            <>
+              <Button variant="outline" size="sm" className="border-amber-200 hover:bg-amber-50 bg-transparent" asChild>
+                <Link href="/auth/login">
+                  <User className="h-4 w-4 mr-2" />
+                  Connexion
+                </Link>
+              </Button>
+              <Button
+                size="sm"
+                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                asChild
+              >
+                <Link href="/auth/signup">S'inscrire</Link>
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={handleSignOut}
+              size="sm"
+              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+            >
+              Logout
+            </Button>
+          )}
         </div>
 
         {/* Enhanced Mobile Menu */}
@@ -128,6 +153,20 @@ export function Header() {
                 </div>
               </div>
 
+              {user && (
+                <div className="p-6 border-b bg-amber-25">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center text-white font-semibold">
+                      {profile?.firstName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{profile?.fullName || "Utilisateur"}</p>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Navigation */}
               <div className="flex-1 p-6">
                 <nav className="space-y-4">
@@ -165,22 +204,41 @@ export function Header() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.5 }}
               >
-                <Button
-                  variant="outline"
-                  className="w-full justify-start border-amber-200 hover:bg-amber-50 bg-transparent"
-                  asChild
-                >
-                  <a href="/login">
+                {loading ? (
+                  <div className="space-y-3">
+                    <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                ) : !user ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start border-amber-200 hover:bg-amber-50 bg-transparent"
+                      asChild
+                    >
+                      <Link href="/auth/login">
+                        <User className="h-4 w-4 mr-2" />
+                        Connexion
+                      </Link>
+                    </Button>
+                    <Button
+                      className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                      asChild
+                    >
+                      <Link href="/auth/signup">S'inscrire</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={handleSignOut}
+                    variant="outline"
+                    className="w-full justify-start border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
+                  >
                     <User className="h-4 w-4 mr-2" />
-                    Connexion
-                  </a>
-                </Button>
-                <Button
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
-                  asChild
-                >
-                  <a href="/signup">S'inscrire</a>
-                </Button>
+                    Déconnexion
+                  </Button>
+                )}
+
                 <Button variant="ghost" className="w-full justify-start hover:bg-amber-50">
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Panier (0)

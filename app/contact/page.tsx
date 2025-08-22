@@ -14,6 +14,7 @@ import { z } from "zod"
 import { toast } from "sonner"
 import {Header} from "@/components/header"
 import { Footer } from "@/components/footer"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 
 const contactSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -87,6 +88,7 @@ export default function ContactPage() {
 
   return (
     <>
+    <ProtectedRoute>
     <Header />
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50">
       <section className="relative py-24 px-4 bg-gradient-to-r from-amber-500 to-orange-600">
@@ -314,6 +316,7 @@ export default function ContactPage() {
       </section>
     </div>
     <Footer/>
+    </ProtectedRoute>
     </>
   )
 }
