@@ -115,8 +115,9 @@ const adventures = [
 export default function AdventurePage() {
   const params = useParams()
   const router = useRouter()
+  
   const [selectedImage, setSelectedImage] = useState(0)
-  const [showBookingForm, setShowBookingForm] = useState(false)
+
 
   const adventureId = Number.parseInt(params.id as string)
   const adventure = adventures.find((a) => a.id === adventureId)
@@ -260,10 +261,11 @@ export default function AdventurePage() {
                 <Button
                   size="lg"
                   className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold h-12"
-                  onClick={() => setShowBookingForm(true)}
+                  onClick={() => router.replace(`/reservation/${adventure.id}`) }
                 >
                   Réserver Maintenant
                 </Button>
+                
                 <Button
                   variant="outline"
                   size="lg"
@@ -380,8 +382,6 @@ export default function AdventurePage() {
         </Tabs>
       </section>
 
-      {/* Booking Form Modal */}
-      {showBookingForm && <BookingForm adventure={adventure} onClose={() => setShowBookingForm(false)} />}
-    </div>
+      </div>
   )
 }

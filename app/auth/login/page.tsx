@@ -61,7 +61,7 @@ export default function LoginPage() {
       const {data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `http://localhost:3000/auth/callback`,
+          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `https://jcasygjyttfsspyimxge.supabase.co/auth/v1/callback`,
         },
       })
     if (data?.url) {
