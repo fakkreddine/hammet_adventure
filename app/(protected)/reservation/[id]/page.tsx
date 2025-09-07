@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,7 +11,10 @@ import { ReservationDetailsStep } from "@/components/reservation/reservation-det
 import { ReservationSummaryStep } from "@/components/reservation/reservation-summary-step"
 import { PaymentStep } from "@/components/reservation/payment-step"
 import { SuccessStep } from "@/components/reservation/success-step"
-
+import { AuthWrapper } from "@/components/auth/auth-wrapper"
+ import { useAuth } from "@/contexts/auth-context"
+import { se } from "date-fns/locale"
+import { redirect } from "next/navigation"
 export interface ReservationData {
   account: {
     id: string
@@ -21,7 +24,7 @@ export interface ReservationData {
   }
   persons: number
   date: Date | null
-  paymentOption: "now" | "spot"
+  paymentOption: "now" | "spot" | ""
   paymentMethod: string
   promoCode?: string
   discount?: number
@@ -36,17 +39,18 @@ const steps = [
 
 export default function ReservationPage() {
   const [currentStep, setCurrentStep] = useState(1)
+  const { user, loading } = useAuth()
   const [reservationData, setReservationData] = useState<ReservationData>({
     account: {
-      id: "1",
-      name: "Marie Dubois",
-      email: "marie.dubois@email.com",
-      avatar: "/woman-profile.png",
+      id: "",
+      name: "",
+      email: "",
+      avatar: "",
     },
-    persons: 2,
+    persons: 0,
     date: null,
-    paymentOption: "now",
-    paymentMethod: "visa",
+    paymentOption: "",
+    paymentMethod: "",
   })
 
   const updateReservationData = (data: Partial<ReservationData>) => {
@@ -88,8 +92,24 @@ export default function ReservationPage() {
       setCurrentStep(5) // Go to success page
     }, 1000)
   }
+   useEffect(() => {
+  if (!loading && user) { 
+    updateReservationData({
+      account: {
+        id: user?.id,
+        name: user?.user_metadata?.last_name + " " + user?.user_metadata?.first_name || "Utilisateur",
+        email: user?.user_metadata?.email || "Email Inconnu",
+        avatar: user?.avatar || "Avatar Inconnu",
+      }
+    })
+  }
+
+  
+}, [loading, user]);
+  
 
   return (
+    <AuthWrapper requireAuth >
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-2 sm:py-4 md:py-6 lg:py-8 px-2 sm:px-4 lg:px-6">
       <div className="max-w-sm sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto">
         {/* Header - Enhanced responsiveness */}
@@ -223,5 +243,6 @@ export default function ReservationPage() {
         )}
       </div>
     </div>
+    </AuthWrapper>
   )
 }

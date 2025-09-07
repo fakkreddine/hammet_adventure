@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Check, RefreshCw, User } from "lucide-react"
 import type { ReservationData } from "@/app/reservation/page"
+import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 interface AccountSelectionStepProps {
   data: ReservationData
@@ -16,10 +18,10 @@ export function AccountSelectionStep({ data, onUpdate }: AccountSelectionStepPro
   const handleAccountSelect = (account: ReservationData["account"]) => {
     onUpdate({ account })
   }
-
+  const router =useRouter()
   const handleChooseAnother = () => {
     // In a real app, this would redirect to login/signup
-    console.log("Redirect to login/signup")
+    router.push("/auth/login")
   }
 
   return (
@@ -92,7 +94,7 @@ export function AccountSelectionStep({ data, onUpdate }: AccountSelectionStepPro
                 className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold h-12 sm:h-14 text-base sm:text-lg"
                 onClick={() => handleAccountSelect(data.account)}
               >
-                <Check className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
+                <Check  className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
                 Continuer avec ce compte
               </Button>
             </motion.div>
