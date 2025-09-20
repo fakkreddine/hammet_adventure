@@ -63,14 +63,10 @@ export default function LoginPage() {
       const {data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `https://jcasygjyttfsspyimxge.supabase.co/auth/v1/callback`,
+          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/protected`,
         },
       })
-    if (data?.url) {
-      // 👇 open Supabase OAuth URL in new tab
-      window.open(data.url, "_blank", "width=500,height=600")
-    }
-      if (error) throw error
+     if (error) throw error
       // OAuth redirect will handle the rest
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Une erreur s'est produite")
