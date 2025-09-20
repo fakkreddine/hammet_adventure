@@ -12,17 +12,24 @@ import { useRouter } from "next/navigation"
 interface AccountSelectionStepProps {
   data: ReservationData
   onUpdate: (data: Partial<ReservationData>) => void
+  forward: () => void
 }
 
-export function AccountSelectionStep({ data, onUpdate }: AccountSelectionStepProps) {
+export function AccountSelectionStep({ data, onUpdate,forward }: AccountSelectionStepProps) {
   const handleAccountSelect = (account: ReservationData["account"]) => {
-    onUpdate({ account })
+    if (account){
+      onUpdate({ account })
+      forward()
+     
+    }
+    
   }
   const router =useRouter()
   const handleChooseAnother = () => {
     // In a real app, this would redirect to login/signup
-    router.push("/auth/login")
+    router.push("/auth/login?redirect=/reservation")
   }
+  console.log("AccountSelectionStep data:", data)
 
   return (
     <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">

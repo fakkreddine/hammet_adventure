@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { useRouter ,useSearchParams} from "next/navigation"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,7 +29,7 @@ export default function LoginPage() {
     setError(null)
 
     const supabase = createClient()
-
+     const redirect = searchParams.get("redirect") || "/protected";
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -36,8 +37,9 @@ export default function LoginPage() {
       })
 
       if (error) throw error
+   
 
-      router.push("/protected")
+      router.push(redirect)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Une erreur s'est produite")
     } finally {

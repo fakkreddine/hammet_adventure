@@ -197,8 +197,8 @@ export default function ReservationPage() {
             transition={{ duration: 0.3 }}
             className="mb-4 sm:mb-6 md:mb-8"
           >
-            {currentStep === 1 && <AccountSelectionStep data={reservationData} onUpdate={updateReservationData} />}
-            {currentStep === 2 && <ReservationDetailsStep data={reservationData} onUpdate={updateReservationData} />}
+            {currentStep === 1 && <AccountSelectionStep forward={nextStep} data={reservationData} onUpdate={updateReservationData} />}
+            {currentStep === 2 && <ReservationDetailsStep  data={reservationData} onUpdate={updateReservationData} />}
             {currentStep === 3 && <ReservationSummaryStep data={reservationData} onUpdate={updateReservationData} />}
             {currentStep === 4 && (
               <PaymentStep data={reservationData} onUpdate={updateReservationData} onConfirm={handlePaymentConfirm} />
