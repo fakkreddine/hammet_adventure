@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter ,useSearchParams} from "next/navigation"
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -21,7 +21,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const searchParams = useSearchParams();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,7 +28,7 @@ export default function LoginPage() {
     setError(null)
 
     const supabase = createClient()
-     const redirect = searchParams.get("redirect") || "/protected";
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -37,9 +36,8 @@ export default function LoginPage() {
       })
 
       if (error) throw error
-   
 
-      router.push(redirect)
+      router.push("/protected")
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Une erreur s'est produite")
     } finally {
@@ -63,10 +61,11 @@ export default function LoginPage() {
       const {data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/protected`,
+          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `http://localhost:3000/`,
         },
       })
-     if (error) throw error
+    
+      if (error) throw error
       // OAuth redirect will handle the rest
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Une erreur s'est produite")

@@ -1,53 +1,93 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Clock, Users, Star } from "lucide-react"
 
-const packages = [
-  {
-    id: 1,
-    title: "Safari Coucher de Soleil",
-    description: "Vivez la magie du désert au coucher du soleil avec nos quads premium",
-    image: "/tunisian-desert-quad-bikes-sunset.png",
-    duration: "3 heures",
-    groupSize: "2-8 personnes",
-    rating: 4.9,
-    price: "120 DT",
-    badge: "Populaire",
-    features: ["Guide expert", "Équipement inclus", "Photos offertes", "Collation"],
-  },
-  {
-    id: 2,
-    title: "Aventure Nocturne",
-    description: "Explorez le désert sous les étoiles pour une expérience unique",
-    image: "/placeholder-ksr1g.png",
-    duration: "4 heures",
-    groupSize: "2-6 personnes",
-    rating: 4.8,
-    price: "180 DT",
-    badge: "Exclusif",
-    features: ["Éclairage LED", "Dîner traditionnel", "Observation étoiles", "Transport"],
-  },
-  {
-    id: 3,
-    title: "Découverte Oasis",
-    description: "Parcourez les oasis cachées et découvrez la culture locale",
-    image: "/quad-bikes-tunisian-oasis.png",
-    duration: "6 heures",
-    groupSize: "2-10 personnes",
-    rating: 4.9,
-    price: "250 DT",
-    badge: "Complet",
-    features: ["Visite oasis", "Déjeuner local", "Artisanat", "Guide culturel"],
-  },
-]
+interface Package {
+  id: number
+  title: string
+  description: string
+  image: string
+  duration: string
+  groupSize: string
+  rating: number
+  price: string
+  badge: string
+  features: string[]
+}
 
 export default function AdventurePackages() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+  const [packages, setPackages] = useState<Package[]>([])
+  const [allPackages, setAllPackages] = useState<Package[]>([])
+  const [showAll, setShowAll] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch activities from the API
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch(`${API_URL}/activities`)
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        const data = await res.json()
+        console.log("Activities fetched:", data)
+
+        // Map API response to Package interface
+        const mappedPackages: Package[] = data.map((activity: any) => ({
+          id: activity.id,
+          title: activity.nom || "Aventure Sans Nom",
+          description: activity.description || "Aucune description disponible",
+          image: activity.images?.length > 0 ? `${API_URL}${activity.images[0]}` : "/placeholder.svg",
+          duration: activity.duree ? String(activity.duree) : "Non spécifié",
+          groupSize: activity.nbMinPersonne && activity.nbMaxPersonne 
+            ? `${activity.nbMinPersonne}-${activity.nbMaxPersonne} personnes` 
+            : "Non spécifié",
+          rating: activity.rating || 4.5, // Fallback rating if not provided
+          price: activity.prix ? `${String(activity.prix)} DT` : "Prix sur demande",
+          badge: activity.featured ? "Populaire" : activity.type || "Standard",
+          features: activity.features || ["Guide inclus", "Équipement fourni"], // Fallback features
+        }))
+
+        // Store all packages and initially show only 3
+        setAllPackages(mappedPackages)
+        setPackages(mappedPackages.slice(0, 3))
+        setError(null)
+      } catch (err) {
+        console.error("Error fetching activities:", err)
+        setError("Impossible de charger les aventures. Veuillez réessayer plus tard.")
+      }
+    }
+    fetchActivities()
+  }, [API_URL])
+
+  // Toggle between showing 3 packages and all packages
+  const handleToggleShowAll = () => {
+    if (showAll) {
+      // Show only 3 packages
+      setPackages(allPackages.slice(0, 3))
+      setShowAll(false)
+    } else {
+      // Show all packages
+      setPackages(allPackages)
+      setShowAll(true)
+    }
+  }
+
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-center">
+            {error}
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -75,7 +115,7 @@ export default function AdventurePackages() {
               className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-border/50"
             >
               <div className="relative">
-                <img src={pkg.image || "/placeholder.svg"} alt={pkg.title} className="w-full h-48 object-cover" />
+                <img src={pkg.image} alt={pkg.title} className="w-full h-48 object-cover" />
                 <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground">{pkg.badge}</Badge>
                 <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-1">
                   <Star className="w-4 h-4 text-yellow-400 fill-current" />
@@ -131,8 +171,9 @@ export default function AdventurePackages() {
           <Button
             variant="outline"
             className="border-primary text-primary hover:bg-primary hover:text-primary-foreground px-8 py-3 rounded-xl font-semibold bg-transparent"
+            onClick={handleToggleShowAll}
           >
-            Voir Tous les Circuits
+            {showAll ? "Voir Moins" : "Voir Tous les Circuits"}
           </Button>
         </motion.div>
       </div>

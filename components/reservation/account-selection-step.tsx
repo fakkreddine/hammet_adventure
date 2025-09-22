@@ -15,21 +15,16 @@ interface AccountSelectionStepProps {
   forward: () => void
 }
 
-export function AccountSelectionStep({ data, onUpdate,forward }: AccountSelectionStepProps) {
+export function AccountSelectionStep({ data, onUpdate, forward }: AccountSelectionStepProps) {
   const handleAccountSelect = (account: ReservationData["account"]) => {
-    if (account){
-      onUpdate({ account })
-      forward()
-     
-    }
-    
+    onUpdate({ account })
+    forward()
   }
   const router =useRouter()
   const handleChooseAnother = () => {
     // In a real app, this would redirect to login/signup
-    router.push("/auth/login?redirect=/reservation")
+    router.push("/auth/login")
   }
-  console.log("AccountSelectionStep data:", data)
 
   return (
     <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">

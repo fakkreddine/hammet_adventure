@@ -5,6 +5,7 @@ import GallerySection from "@/components/gallery-section"
 import AdventuresSection from "@/components/adventures-section"
 import WhyChooseUs from "@/components/why-choose-us"
 import AdventurePackages from "@/components/adventure-packages"
+
 import { NewsletterSection } from "@/components/newsletter-section"
 import { Footer } from "@/components/footer"
 import ProtectedPage from "./(protected)/protected/page"

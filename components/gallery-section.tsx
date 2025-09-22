@@ -1,111 +1,74 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Play, MapPin, Clock, Users } from "lucide-react"
+import { X, Clock, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-const galleryImages = [
-  {
-    id: 1,
-    src: "/tunisian-desert-quad-bikes.png",
-    alt: "Groupe de quads traversant les dunes du désert tunisien",
-    category: "Aventures désert",
-    location: "Douz, Tunisie",
-    duration: "3h",
-    participants: "6 personnes",
-    featured: true,
-  },
-  {
-    id: 2,
-    src: "/tunisian-desert-quad-bikes-sunset.png",
-    alt: "Aventure quad spectaculaire au coucher du soleil",
-    category: "Coucher de soleil",
-    location: "Hammamet, Tunisie",
-    duration: "2h",
-    participants: "4 personnes",
-    featured: true,
-  },
-  {
-    id: 3,
-    src: "/quad-bikes-tunisian-oasis.png",
-    alt: "Exploration en quad dans une oasis tunisienne",
-    category: "Oasis",
-    location: "Tozeur, Tunisie",
-    duration: "4h",
-    participants: "8 personnes",
-  },
-  {
-    id: 4,
-    src: "/tunisia-quad-bikes.png",
-    alt: "Circuit quad panoramique avec vues époustouflantes",
-    category: "Panoramique",
-    location: "Sidi Bou Said, Tunisie",
-    duration: "2.5h",
-    participants: "5 personnes",
-    featured: true,
-  },
-  {
-    id: 5,
-    src: "/tunisian-quad-bike-adventure.png",
-    alt: "Aventure quad nocturne avec éclairage LED",
-    category: "Nocturne",
-    location: "Hammamet, Tunisie",
-    duration: "2h",
-    participants: "4 personnes",
-  },
-  {
-    id: 6,
-    src: "/tunisian-quad-biking-family.png",
-    alt: "Aventure quad familiale sécurisée",
-    category: "Famille",
-    location: "Nabeul, Tunisie",
-    duration: "1.5h",
-    participants: "10 personnes",
-  },
-  {
-    id: 7,
-    src: "/quad-biking-training-tunisia.png",
-    alt: "Formation professionnelle quad avec instructeur",
-    category: "Formation",
-    location: "Hammamet, Tunisie",
-    duration: "3h",
-    participants: "6 personnes",
-  },
-  {
-    id: 8,
-    src: "/tunisia-quad-biking.png",
-    alt: "Quad extrême dans les montagnes tunisiennes",
-    category: "Extrême",
-    location: "Zaghouan, Tunisie",
-    duration: "5h",
-    participants: "4 personnes",
-  },
-]
-
-const categories = [
-  "Tous",
-  "Aventures désert",
-  "Coucher de soleil",
-  "Oasis",
-  "Panoramique",
-  "Nocturne",
-  "Famille",
-  "Formation",
-  "Extrême",
-]
+interface Activity {
+  id: number
+  nom: string
+  description: string
+  duree: string | number
+  nbMaxPersonne: string | number
+  nbMinPersonne: string | number
+  trancheAge?: string
+  prix?: string | number
+  type: string
+  location?: string
+  images: string[]
+  featured?: boolean
+}
 
 export default function GallerySection() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [categories, setCategories] = useState<string[]>(["Tous"])
   const [selectedCategory, setSelectedCategory] = useState("Tous")
-  const [selectedImage, setSelectedImage] = useState<number | null>(null)
+  const [selectedActivity, setSelectedActivity] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredImages =
-    selectedCategory === "Tous" ? galleryImages : galleryImages.filter((img) => img.category === selectedCategory)
+  // Fetch activities
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch(`${API_URL}/activities`)
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        const data: Activity[] = await res.json()
+        console.log("Activities fetched:", data)
+        setActivities(data)
+
+        // Extract unique categories dynamically
+        const uniqueCategories = Array.from(new Set(data.map((a) => a.type)))
+        setCategories(["Tous", ...uniqueCategories])
+        setError(null)
+      } catch (err) {
+        console.error("Error fetching activities:", err)
+        setError("Impossible de charger les activités. Veuillez réessayer plus tard.")
+      }
+    }
+    fetchActivities()
+  }, [API_URL])
+
+  const filteredActivities =
+    selectedCategory === "Tous"
+      ? activities
+      : activities.filter((a) => a.type === selectedCategory)
 
   return (
     <section className="py-20 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Heading */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -124,6 +87,7 @@ export default function GallerySection() {
           </p>
         </motion.div>
 
+        {/* Category buttons */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -154,68 +118,32 @@ export default function GallerySection() {
           ))}
         </motion.div>
 
+        {/* Activity grid */}
         <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <AnimatePresence>
-            {filteredImages.map((image, index) => (
+            {filteredActivities.map((activity) => (
               <motion.div
-                key={image.id}
+                key={activity.id}
                 layout
                 initial={{ opacity: 0, scale: 0.8, y: 50 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: -50 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                transition={{ duration: 0.6 }}
                 whileHover={{ scale: 1.03, y: -10 }}
-                className={`relative group cursor-pointer overflow-hidden rounded-2xl shadow-xl bg-white/80 backdrop-blur-sm border border-amber-200 ${
-                  image.featured ? "md:col-span-2 lg:col-span-2 xl:col-span-2" : ""
-                } ${index === 0 ? "lg:row-span-2" : ""}`}
-                onClick={() => setSelectedImage(image.id)}
+                className="relative group cursor-pointer overflow-hidden rounded-2xl shadow-xl bg-white/80 backdrop-blur-sm border border-amber-200"
+                onClick={() => setSelectedActivity(activity.id)}
               >
-                <div
-                  className={`${image.featured ? "aspect-[16/10]" : "aspect-[4/3]"} ${index === 0 ? "lg:aspect-[4/5]" : ""} relative overflow-hidden`}
-                >
+                <div className="relative">
                   <img
-                    src={image.src || "/placeholder.svg"}
-                    alt={image.alt}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    src={activity.images.length > 0 ? `${API_URL}${activity.images[0]}` : "/placeholder.svg"}
+                    alt={activity.nom || "Activity"}
+                    className="w-full h-64 lg:h-96 object-cover"
                   />
-
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
-
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      whileHover={{ scale: 1.1 }}
-                      className="bg-amber-500/20 backdrop-blur-sm rounded-full p-4 border border-white/30"
-                    >
-                      <Play className="w-8 h-8 text-white" />
-                    </motion.div>
-                  </div>
-
                   <div className="absolute top-4 left-4">
                     <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0 shadow-lg">
-                      {image.category}
+                      {activity.type}
                     </Badge>
-                  </div>
-
-                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <div className="space-y-2">
-                      <h3 className="font-bold text-lg leading-tight">{image.alt}</h3>
-
-                      <div className="flex items-center gap-4 text-sm opacity-90">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          <span>{image.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{image.duration}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="w-4 h-4" />
-                          <span>{image.participants}</span>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -223,14 +151,15 @@ export default function GallerySection() {
           </AnimatePresence>
         </motion.div>
 
+        {/* Modal */}
         <AnimatePresence>
-          {selectedImage && (
+          {selectedActivity && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
-              onClick={() => setSelectedImage(null)}
+              onClick={() => setSelectedActivity(null)}
             >
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -241,52 +170,59 @@ export default function GallerySection() {
                 onClick={(e) => e.stopPropagation()}
               >
                 {(() => {
-                  const currentImage = galleryImages.find((img) => img.id === selectedImage)
-                  return currentImage ? (
+                  const current = activities.find((a) => a.id === selectedActivity)
+                  if (!current) return null
+                  return (
                     <div className="flex flex-col lg:flex-row">
                       <div className="lg:w-2/3">
                         <img
-                          src={currentImage.src || "/placeholder.svg"}
-                          alt={currentImage.alt}
-                          className="w-full h-64 lg:h-96 object-cover"
+                          src={current.images.length > 0 ? `${API_URL}${current.images[0]}` : "/placeholder.svg"}
+                          alt={current.nom || "Activity"}
+                          className="w-full h-64 lg:h-full object-cover"
                         />
                       </div>
                       <div className="lg:w-1/3 p-6 bg-gradient-to-br from-amber-50 to-orange-50">
                         <div className="space-y-4">
                           <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white">
-                            {currentImage.category}
+                            {current.type}
                           </Badge>
-                          <h3 className="text-2xl font-bold text-gray-900">{currentImage.alt}</h3>
-
+                          <h3 className="text-2xl font-bold text-gray-900">{current.nom}</h3>
+                          <p className="text-gray-700">{current.description}</p>
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 text-gray-700">
-                              <MapPin className="w-5 h-5 text-amber-600" />
-                              <span className="font-medium">{currentImage.location}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-gray-700">
                               <Clock className="w-5 h-5 text-amber-600" />
-                              <span className="font-medium">Durée: {currentImage.duration}</span>
+                              <span className="font-medium">Durée: {current.duree}</span>
                             </div>
                             <div className="flex items-center gap-2 text-gray-700">
                               <Users className="w-5 h-5 text-amber-600" />
-                              <span className="font-medium">Jusqu'à {currentImage.participants}</span>
+                              <span className="font-medium">
+                                {current.nbMinPersonne} - {current.nbMaxPersonne} personnes
+                              </span>
                             </div>
+                            {current.trancheAge && (
+                              <div className="flex items-center gap-2 text-gray-700">
+                                <span className="font-medium">Âge: {current.trancheAge}</span>
+                              </div>
+                            )}
+                            {current.prix && (
+                              <div className="flex items-center gap-2 text-gray-700">
+                                <span className="font-medium">Prix: {current.prix}</span>
+                              </div>
+                            )}
                           </div>
-
                           <Button className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold">
                             Réserver cette aventure
                           </Button>
                         </div>
                       </div>
                     </div>
-                  ) : null
+                  )
                 })()}
-
                 <Button
                   variant="ghost"
                   size="icon"
                   className="absolute top-4 right-4 text-gray-600 hover:bg-gray-100 rounded-full"
-                  onClick={() => setSelectedImage(null)}
+                  onClick={() => setSelectedActivity(null)}
                 >
                   <X className="h-6 w-6" />
                 </Button>
@@ -294,37 +230,6 @@ export default function GallerySection() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-center mt-16"
-        >
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-amber-200 shadow-xl">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Prêt à vivre votre propre aventure?</h3>
-            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Rejoignez des milliers d'aventuriers qui ont découvert la beauté de la Tunisie à travers nos excursions
-              quad exceptionnelles.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold"
-              >
-                Réserver maintenant
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-amber-300 text-amber-700 hover:bg-amber-50 bg-transparent"
-              >
-                Voir tous les circuits
-              </Button>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   )

@@ -1,125 +1,150 @@
-import Image from "next/image"
+"use client"
+
+import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Clock, Users, Star, MapPin } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Clock, Users } from "lucide-react"
 
-const adventures = [
-  {
-    id: 1,
-    title: "Sunset Quad Safari",
-    location: "Hammamet Desert",
-    image: "/hero-sunset-quad.jpg",
-    duration: "3 hours",
-    groupSize: "2-8 people",
-    price: "120",
-    rating: 4.9,
-    reviews: 156,
-    description: "Experience the magic of golden hour riding through Tunisia's stunning desert landscapes.",
-  },
-  {
-    id: 2,
-    title: "Night Adventure",
-    location: "Hammamet Hills",
-    image: "/hero-night-quad.jpg",
-    duration: "2.5 hours",
-    groupSize: "4-10 people",
-    price: "100",
-    rating: 4.8,
-    reviews: 89,
-    description: "Explore under the stars with LED-equipped quads for an unforgettable night experience.",
-  },
-  {
-    id: 3,
-    title: "Desert Discovery",
-    location: "Hammamet Nature",
-    image: "/tour-solo-quad.jpg",
-    duration: "4 hours",
-    groupSize: "2-12 people",
-    price: "150",
-    rating: 5.0,
-    reviews: 203,
-    description: "Discover diverse Tunisian landscapes on this comprehensive adventure tour.",
-  },
-]
+interface Activity {
+  id: number
+  nom: string | null
+  type: string | null
+  prix: number
+  images: string[]
+  duree: number
+  nbMinPersonne: number
+  nbMaxPersonne: number
+  trancheAge: string | null
+  description: string | null
+  included: string[]
+}
 
-export default function AdventuresSection() {
+export default function AdventurePackages() {
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [visibleCount, setVisibleCount] = useState(3)
+  const API_URL = process.env.NEXT_PUBLIC_API_URL
+
+  useEffect(() => {
+    fetch(`${API_URL}/activities`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("✅ API response:", data) // log for debugging
+        const filtered = data.filter((a: Activity) => a.nom && a.prix > 0)
+        setActivities(filtered)
+      })
+      .catch((err) => console.error("❌ Error fetching activities:", err))
+  }, [API_URL])
+
+  const toggleShowMore = () => {
+    setVisibleCount(visibleCount === 3 ? activities.length : 3)
+  }
+
   return (
-    <section id="adventures" className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Check out nearest adventures</h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover amazing quad adventures in Hammamet with professional guides and top-quality equipment.
+    <section className="py-20 bg-background">
+      <div className="container mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Nos <span className="gradient-text">Aventures</span> Signature
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Choisissez parmi nos circuits soigneusement conçus pour tous les niveaux d&apos;aventuriers
           </p>
-        </div>
+        </motion.div>
 
-        {/* Featured Adventure */}
-        <div className="mb-16">
-          <div className="relative h-96 rounded-2xl overflow-hidden">
-            <Image src="/hero-group-panorama.jpg" alt="Group Adventure" fill className="object-cover" />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <div className="text-center text-white">
-                <h3 className="text-3xl font-bold mb-4">Group Panorama Experience</h3>
-                <p className="text-lg mb-6">Join fellow adventurers for breathtaking views</p>
-                <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg">Book Now</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Adventure Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {adventures.map((adventure) => (
-            <div
-              key={adventure.id}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+          {activities.slice(0, visibleCount).map((activity, index) => (
+            <motion.div
+              key={activity.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -10 }}
+              className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-border/50"
             >
-              <div className="relative h-48">
-                <Image
-                  src={adventure.image || "/placeholder.svg"}
-                  alt={adventure.title}
-                  fill
-                  className="object-cover"
+              <div className="relative">
+                <img
+                  src={
+                    activity.images.length > 0
+                      ? `${API_URL}${activity.images[0]}`
+                      : "/placeholder.svg"
+                  }
+                  alt={activity.nom || "Activity"}
+                  className="w-full h-48 object-cover"
                 />
-                <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1">
-                  <span className="font-bold text-green-600">{adventure.price} DT</span>
-                </div>
+                <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground">
+                  {activity.type || "Aventure"}
+                </Badge>
               </div>
 
               <div className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xl font-bold text-gray-900">{adventure.title}</h3>
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                    <span className="text-sm font-medium">{adventure.rating}</span>
+                <h3 className="text-xl font-bold text-card-foreground mb-2">{activity.nom}</h3>
+                <p className="text-muted-foreground mb-4 leading-relaxed">
+                  {activity.description || "Découvrez une aventure inoubliable avec nos quads."}
+                </p>
+
+                <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    {activity.duree} min
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    {activity.nbMinPersonne}-{activity.nbMaxPersonne} personnes
                   </div>
                 </div>
 
-                <div className="flex items-center text-gray-600 mb-3">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{adventure.location}</span>
+                <div className="space-y-2 mb-6">
+                  {activity.included.length > 0 ? (
+                    activity.included.map((inc, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm">
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                        <span className="text-muted-foreground">{inc}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground text-sm">Équipement inclus</span>
+                  )}
                 </div>
 
-                <p className="text-gray-600 text-sm mb-4">{adventure.description}</p>
-
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-1" />
-                    <span>{adventure.duration}</span>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-2xl font-bold text-primary">{activity.prix} DT</span>
+                    <span className="text-muted-foreground text-sm ml-1">/ personne</span>
                   </div>
-                  <div className="flex items-center">
-                    <Users className="w-4 h-4 mr-1" />
-                    <span>{adventure.groupSize}</span>
-                  </div>
+                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-xl font-semibold">
+                    Réserver
+                  </Button>
                 </div>
-
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg">
-                  Book Adventure
-                </Button>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
+
+        {activities.length > 3 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            viewport={{ once: true }}
+            className="text-center mt-12"
+          >
+            <Button
+              variant="outline"
+              onClick={toggleShowMore}
+              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground px-8 py-3 rounded-xl font-semibold bg-transparent"
+            >
+              {visibleCount === 3 ? "Voir Tous les Circuits" : "Voir Moins"}
+            </Button>
+          </motion.div>
+        )}
       </div>
     </section>
   )

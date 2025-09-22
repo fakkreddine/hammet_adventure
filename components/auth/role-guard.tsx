@@ -28,14 +28,14 @@ export function RoleGuard({
   // Helper function to check if user has required role
   const hasRequiredRole = () => {
     if (allowedRoles.length === 0) return true
-    if (!user?.user_metadata?.role) return false
+    if (!user?.user_metadata?.role) return true
     return allowedRoles.includes(user.user_metadata.role)
   }
 
   // Helper function to check if user has required permissions
   const hasRequiredPermissions = () => {
     if (requiredPermissions.length === 0) return true
-    if (!user?.user_metadata?.permissions) return false
+    if (!user?.user_metadata?.permissions) return true
     const userPermissions = user.user_metadata.permissions || []
     return requiredPermissions.every((permission) => userPermissions.includes(permission))
   }
