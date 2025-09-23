@@ -1,133 +1,179 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MapPin, Users, Star, Clock, Heart, ArrowLeft, Check, Info, Camera, Shield, Award } from "lucide-react"
+import { MapPin, Users, Star, Clock, Heart, ArrowLeft, Check, Info, Camera, Shield, Award, AlertCircle } from "lucide-react"
 import { Header } from "@/components/header"
-import { BookingForm } from "@/components/booking-form"
 import Link from "next/link"
 
-// Adventure data (in a real app, this would come from an API)
-const adventures = [
-  {
-    id: 1,
-    title: "Safari Quad dans le Désert",
-    location: "Douz, Tunisie",
-    duration: "3 heures",
-    price: 120,
-    rating: 4.8,
-    reviews: 247,
-    images: [
-      "/tunisian-desert-quad-bikes.png",
-      "/tunisian-desert-quad-adventure.png",
-      "/tunisia-desert-quad.png",
-      "/quad-bikes-tunisia-sunset.png",
-    ],
-    category: "Adventure Sports",
-    features: ["Guide Expert", "Équipement Inclus", "Transport", "Assurance", "Photos Souvenir"],
-    difficulty: "Intermédiaire",
-    groupSize: "2-8 personnes",
-    description:
-      "Explorez les dunes dorées du désert tunisien lors de cette aventure quad inoubliable. Découvrez des paysages à couper le souffle et vivez une expérience authentique avec nos guides experts locaux.",
-    longDescription:
-      "Cette excursion quad de 3 heures vous emmène au cœur du désert tunisien, où vous découvrirez des paysages spectaculaires et une culture riche. Nos guides expérimentés vous feront découvrir des sites cachés et partageront avec vous l'histoire fascinante de cette région. L'aventure comprend une formation complète sur la conduite des quads, tout l'équipement de sécurité nécessaire, et des arrêts photos dans les plus beaux endroits du désert.",
-    included: [
-      "Guide expert local",
-      "Quad 4x4 récent",
-      "Équipement de sécurité complet",
-      "Transport depuis/vers l'hôtel",
-      "Assurance complète",
-      "Photos professionnelles",
-      "Rafraîchissements",
-    ],
-    notIncluded: ["Repas (disponible en option)", "Pourboires", "Dépenses personnelles"],
+// Define the API response type
+interface ApiActivity {
+  id: number
+  nom: string | null
+  type: string | null
+  prix: number
+  images: string[]
+  duree: number
+  nbMinPersonne: number
+  nbMaxPersonne: number
+  trancheAge: string | null
+  description: string | null
+  included: string[]
+}
+
+// Define the Adventure type
+interface Adventure {
+  id: number
+  title: string
+  location: string
+  duration: string
+  price: number
+  rating: number
+  reviews: number
+  images: string[]
+  category: string
+  features: string[]
+  difficulty: string
+  groupSize: string
+  description: string
+  longDescription: string
+  included: string[]
+  notIncluded: string[]
+  schedule: { time: string; activity: string }[]
+  requirements: string[]
+  cancellation: string
+}
+
+// Utility function to sanitize image URLs
+const sanitizeImageUrl = (url: string): string => {
+  let sanitizedUrl = url.replace("localhost:3000", "localhost:8080")
+  if (!sanitizedUrl.match(/\.(jpg|jpeg|png|gif)$/i)) {
+    console.warn(`Malformed image URL detected: ${sanitizedUrl}. Using placeholder.`)
+    return "/placeholder.svg?height=400&width=600&query=quad adventure"
+  }
+  if (!sanitizedUrl.startsWith("http://") && !sanitizedUrl.startsWith("https://")) {
+    sanitizedUrl = `http://localhost:8080${sanitizedUrl.startsWith("/") ? "" : "/"}${sanitizedUrl}`
+  }
+  return sanitizedUrl
+}
+
+// Function to map API response to Adventure type
+const mapApiToAdventure = (activity: ApiActivity): Adventure => {
+  const sanitizedImages = activity.images.map(sanitizeImageUrl)
+  // Check if the title is generic or placeholder-like (e.g., "aaaa")
+  const isGenericTitle = activity.nom && (activity.nom.length <= 0 || activity.nom.match(/^[a-zA-Z]+$/))
+  // Check if the description is generic (e.g., "bla bla")
+  const isGenericDescription = activity.description && activity.description.toLowerCase().includes("bla bla")
+
+  return {
+    id: activity.id,
+    title: isGenericTitle ? `Aventure en Quad ${activity.id}` : activity.nom || "Aventure Inconnue",
+    location: activity.type || "Tunisie",
+    duration: `${Math.floor(activity.duree / 60)} heure${activity.duree >= 120 ? "s" : ""} ${activity.duree % 60 ? `${activity.duree % 60} min` : ""}`,
+    price: activity.prix,
+    rating: 4.5, // Mocked since API doesn't provide
+    reviews: Math.floor(Math.random() * 200) + 50, // Mocked
+    images: sanitizedImages.length > 0 ? sanitizedImages : ["/placeholder.svg?height=400&width=600&query=quad adventure"],
+    category: activity.type || "Aventure",
+    features: activity.included.length > 0 ? activity.included : ["Guide Expert", "Équipement de Sécurité", "Assurance"],
+    difficulty: activity.trancheAge
+      ? activity.trancheAge.includes("10") || activity.trancheAge.includes("5")
+        ? "Débutant"
+        : activity.trancheAge.includes("18")
+        ? "Avancé"
+        : "Intermédiaire"
+      : "Intermédiaire",
+    groupSize: `${activity.nbMinPersonne}-${activity.nbMaxPersonne} personnes`,
+    description: isGenericDescription 
+      ? "Découvrez une aventure palpitante en quad à travers des paysages uniques en Tunisie." 
+      : activity.description || "Aucune description fournie.",
+    longDescription: isGenericDescription
+      ? "Rejoignez-nous pour une expérience inoubliable en quad, adaptée à tous les niveaux. Parcourez des terrains variés avec nos guides experts et profitez de vues spectaculaires."
+      : activity.description || "Découvrez une aventure unique avec nos guides experts en Tunisie.",
+    included: activity.included.length > 0 ? activity.included : ["Guide expert local", "Équipement de sécurité", "Assurance"],
+    notIncluded: ["Repas (optionnel)", "Pourboires", "Dépenses personnelles"],
     schedule: [
       { time: "08:00", activity: "Prise en charge à l'hôtel" },
-      { time: "08:30", activity: "Arrivée au centre quad et briefing sécurité" },
-      { time: "09:00", activity: "Formation pratique et test des quads" },
-      { time: "09:30", activity: "Départ pour l'aventure dans le désert" },
-      { time: "11:00", activity: "Arrêt photos et découverte d'une oasis" },
-      { time: "11:30", activity: "Continuation de l'exploration" },
-      { time: "12:00", activity: "Retour au centre et rafraîchissements" },
-      { time: "12:30", activity: "Retour à l'hôtel" },
+      { time: "08:30", activity: "Briefing de sécurité" },
+      { time: "09:00", activity: "Départ pour l'aventure en quad" },
+      { time: "10:30", activity: "Pause photos et découverte" },
+      { time: "11:30", activity: "Retour et rafraîchissements" },
     ],
-    requirements: [
-      "Âge minimum: 16 ans",
-      "Permis de conduire valide",
-      "Condition physique normale",
-      "Vêtements adaptés recommandés",
-    ],
+    requirements: activity.trancheAge
+      ? [`Âge: ${activity.trancheAge}`, "Condition physique normale", "Vêtements adaptés"]
+      : ["Âge minimum: 10 ans", "Condition physique normale", "Vêtements adaptés"],
     cancellation: "Annulation gratuite jusqu'à 24h avant le départ",
-  },
-  {
-    id: 2,
-    title: "Excursion Quad au Coucher du Soleil",
-    location: "Hammamet, Tunisie",
-    duration: "2 heures",
-    price: 85,
-    rating: 4.9,
-    reviews: 189,
-    images: [
-      "/tunisian-desert-quad-bikes-sunset.png",
-      "/tunisia-quad-sunset.png",
-      "/placeholder-d81n5.png",
-      "/tunisia-coastal-quad-adventure.png",
-    ],
-    category: "Adventure Sports",
-    features: ["Coucher de Soleil", "Photos Incluses", "Rafraîchissements", "Guide Expert"],
-    difficulty: "Débutant",
-    groupSize: "2-6 personnes",
-    description: "Admirez un coucher de soleil spectaculaire depuis votre quad dans les paysages tunisiens.",
-    longDescription:
-      "Une expérience magique qui combine l'adrénaline de la conduite quad avec la beauté d'un coucher de soleil tunisien. Cette excursion de 2 heures est parfaite pour les débutants et offre des vues panoramiques exceptionnelles sur la côte méditerranéenne.",
-    included: [
-      "Guide expert local",
-      "Quad automatique facile",
-      "Équipement de sécurité",
-      "Photos professionnelles du coucher de soleil",
-      "Rafraîchissements",
-      "Transport local",
-    ],
-    notIncluded: ["Transport depuis l'hôtel (disponible en option)", "Repas", "Pourboires"],
-    schedule: [
-      { time: "16:30", activity: "Accueil et briefing sécurité" },
-      { time: "17:00", activity: "Formation et test des quads" },
-      { time: "17:30", activity: "Départ pour l'aventure" },
-      { time: "18:15", activity: "Arrêt au point de vue panoramique" },
-      { time: "18:45", activity: "Observation du coucher de soleil" },
-      { time: "19:15", activity: "Retour et rafraîchissements" },
-    ],
-    requirements: [
-      "Âge minimum: 14 ans (avec accompagnant)",
-      "Aucune expérience requise",
-      "Condition physique normale",
-    ],
-    cancellation: "Annulation gratuite jusqu'à 12h avant le départ",
-  },
-  // Add more adventures as needed...
-]
+  }
+}
 
 export default function AdventurePage() {
   const params = useParams()
   const router = useRouter()
-  
   const [selectedImage, setSelectedImage] = useState(0)
-
+  const [adventure, setAdventure] = useState<Adventure | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const adventureId = Number.parseInt(params.id as string)
-  const adventure = adventures.find((a) => a.id === adventureId)
 
-  if (!adventure) {
+  // Fetch adventure data from API
+  useEffect(() => {
+    const fetchAdventure = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const response = await fetch(`http://localhost:8080/activities/${adventureId}`)
+        if (!response.ok) {
+          throw new Error("Échec de la récupération de l'aventure")
+        }
+        const data: ApiActivity = await response.json()
+        const mappedAdventure = mapApiToAdventure(data)
+        setAdventure(mappedAdventure)
+      } catch (err) {
+        console.error("Erreur lors de la récupération de l'aventure:", err)
+        setError("Une erreur est survenue lors du chargement de l'aventure. Veuillez réessayer.")
+        setAdventure(null)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (adventureId) {
+      fetchAdventure()
+    } else {
+      setError("ID d'aventure invalide")
+      setIsLoading(false)
+    }
+  }, [adventureId])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        <Header />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <p className="text-xl text-gray-700">Chargement de l'aventure...</p>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (error || !adventure) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
         <Header />
         <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Aventure non trouvée</h1>
+          <AlertCircle className="w-20 h-20 mx-auto text-red-500 mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">{error || "Aventure non trouvée"}</h1>
           <Button asChild>
             <Link href="/booking">Retour aux aventures</Link>
           </Button>
@@ -163,6 +209,9 @@ export default function AdventurePage() {
                 src={adventure.images[selectedImage] || "/placeholder.svg"}
                 alt={adventure.title}
                 className="w-full h-96 object-cover rounded-xl shadow-lg"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg?height=400&width=600&query=quad adventure"
+                }}
               />
               <Button variant="ghost" size="sm" className="absolute top-4 right-4 bg-white/90 hover:bg-white shadow-md">
                 <Heart className="w-4 h-4" />
@@ -183,6 +232,9 @@ export default function AdventurePage() {
                     src={image || "/placeholder.svg"}
                     alt={`${adventure.title} ${index + 1}`}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg?height=80&width=80&query=quad adventure"
+                    }}
                   />
                 </button>
               ))}
@@ -261,11 +313,10 @@ export default function AdventurePage() {
                 <Button
                   size="lg"
                   className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold h-12"
-                  onClick={() => router.replace(`/reservation/${adventure.id}`) }
+                  onClick={() => router.push(`/reservation/${adventure.id}`)}
                 >
                   Réserver Maintenant
                 </Button>
-                
                 <Button
                   variant="outline"
                   size="lg"
@@ -381,7 +432,6 @@ export default function AdventurePage() {
           </TabsContent>
         </Tabs>
       </section>
-
-      </div>
+    </div>
   )
 }
