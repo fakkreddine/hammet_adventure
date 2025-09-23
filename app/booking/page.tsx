@@ -16,115 +16,81 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { MapPin, Calendar, Users, Search, Filter, Star, Clock, Heart, Grid3X3, List, AlertCircle } from "lucide-react"
 import { Header } from "@/components/header"
-import { searchFormSchema, type SearchFormData} from "@/lib/validations"
+import { searchFormSchema, type SearchFormData } from "@/lib/validations"
 import { searchAdventures, initializeSearchIndex, Adventure } from "@/lib/meilisearch"
 import { useDebounce } from "@/hooks/use-debounce"
 import Link from "next/link"
 import { Footer } from "@/components/footer"
 
-const adventures: Adventure[] = [
-  {
-    id: 1,
-    title: "Safari Quad dans le Désert",
-    location: "Douz, Tunisie",
-    duration: "3 heures",
-    price: 120,
-    rating: 4.8,
-    reviews: 247,
-    image: "/tunisian-desert-quad-bikes.png",
-    category: "Adventure Sports",
-    features: ["Guide Expert", "Équipement Inclus", "Transport"],
-    difficulty: "Intermédiaire",
-    groupSize: "2-8 personnes",
-    description: "Explorez les dunes dorées du désert tunisien lors de cette aventure quad inoubliable.",
-  },
-  {
-    id: 2,
-    title: "Excursion Quad au Coucher du Soleil",
-    location: "Hammamet, Tunisie",
-    duration: "2 heures",
-    price: 85,
-    rating: 4.9,
-    reviews: 189,
-    image: "/tunisian-desert-quad-bikes-sunset.png",
-    category: "Adventure Sports",
-    features: ["Coucher de Soleil", "Photos Incluses", "Rafraîchissements"],
-    difficulty: "Débutant",
-    groupSize: "2-6 personnes",
-    description: "Admirez un coucher de soleil spectaculaire depuis votre quad dans les paysages tunisiens.",
-  },
-  {
-    id: 3,
-    title: "Aventure Quad dans l'Oasis",
-    location: "Tozeur, Tunisie",
-    duration: "4 heures",
-    price: 150,
-    rating: 4.7,
-    reviews: 156,
-    image: "/quad-bikes-tunisian-oasis.png",
-    category: "Adventure Sports",
-    features: ["Visite Oasis", "Déjeuner Inclus", "Guide Local"],
-    difficulty: "Avancé",
-    groupSize: "4-10 personnes",
-    description: "Découvrez les oasis cachées et la culture locale lors de cette excursion quad complète.",
-  },
-  {
-    id: 4,
-    title: "Circuit Quad Panoramique",
-    location: "Sidi Bou Said, Tunisie",
-    duration: "2.5 heures",
-    price: 95,
-    rating: 4.6,
-    reviews: 203,
-    image: "/tunisia-quad-bikes.png",
-    category: "Adventure Sports",
-    features: ["Vues Panoramiques", "Arrêts Photos", "Équipement Premium"],
-    difficulty: "Intermédiaire",
-    groupSize: "2-8 personnes",
-    description: "Profitez de vues panoramiques exceptionnelles sur la côte méditerranéenne.",
-  },
-  {
-    id: 5,
-    title: "Expédition Quad Nocturne",
-    location: "Hammamet, Tunisie",
-    duration: "2 heures",
-    price: 110,
-    rating: 4.8,
-    reviews: 134,
-    image: "/tunisian-quad-bike-adventure.png",
-    category: "Adventure Sports",
-    features: ["Éclairage LED", "Expérience Unique", "Sécurité Renforcée"],
-    difficulty: "Avancé",
-    groupSize: "2-6 personnes",
-    description: "Vivez une expérience nocturne unique avec un éclairage LED professionnel.",
-  },
-  {
-    id: 6,
-    title: "Découverte Quad Familiale",
-    location: "Nabeul, Tunisie",
-    duration: "1.5 heures",
-    price: 65,
-    rating: 4.5,
-    reviews: 298,
-    image: "/family-quad-adventure-tunisia.png",
-    category: "Adventure Sports",
-    features: ["Adapté Familles", "Formation Incluse", "Parcours Sécurisé"],
-    difficulty: "Débutant",
-    groupSize: "2-12 personnes",
-    description: "Une aventure quad parfaite pour toute la famille avec un parcours adapté et sécurisé.",
-  },
-]
+// Define the API response type
+interface ApiActivity {
+  id: number
+  nom: string | null
+  type: string | null
+  prix: number
+  images: string[]
+  duree: number
+  nbMinPersonne: number
+  nbMaxPersonne: number
+  trancheAge: string | null
+  description: string | null
+  included: string[]
+}
+
+// Utility function to sanitize and validate image URLs
+const sanitizeImageUrl = (url: string): string => {
+  // Replace localhost:3000 with localhost:8080
+  let sanitizedUrl = url.replace("localhost:3000", "localhost:8080")
+
+  // Check if the URL is incomplete or malformed
+  if (!sanitizedUrl.match(/\.(jpg|jpeg|png|gif)$/i)) {
+    console.warn(`Malformed image URL detected: ${sanitizedUrl}. Using placeholder.`)
+    return "/placeholder.svg?height=240&width=400&query=quad adventure tunisia"
+  }
+
+  // Ensure the URL starts with http:// or https://
+  if (!sanitizedUrl.startsWith("http://") && !sanitizedUrl.startsWith("https://")) {
+    sanitizedUrl = `http://localhost:8080${sanitizedUrl.startsWith("/") ? "" : "/"}${sanitizedUrl}`
+  }
+
+  return sanitizedUrl
+}
+
+// Function to map API response to Adventure type
+const mapApiToAdventure = (activity: ApiActivity): Adventure => ({
+  id: activity.id,
+  title: activity.nom || "Unnamed Adventure",
+  location: activity.type || "Unknown Location", // Using 'type' as a proxy for location
+  duration: `${Math.floor(activity.duree / 60)} heure${activity.duree >= 120 ? "s" : ""} ${activity.duree % 60 ? `${activity.duree % 60} min` : ""}`,
+  price: activity.prix,
+  rating: 4.5, // Default rating since API doesn't provide it
+  reviews: Math.floor(Math.random() * 300) + 100, // Mock reviews since API doesn't provide it
+  image: activity.images[0] ? sanitizeImageUrl(activity.images[0]) : "/placeholder.svg?height=240&width=400&query=quad adventure tunisia",
+  category: activity.type || "Adventure Sports", // Default category
+  features: activity.included.length > 0 ? activity.included : ["Guide Expert"], // Default feature if empty
+  difficulty: activity.trancheAge
+    ? activity.trancheAge.includes("7") || activity.trancheAge.includes("5")
+      ? "Débutant"
+      : activity.trancheAge.includes("18")
+      ? "Avancé"
+      : "Intermédiaire"
+    : "Intermédiaire", // Infer difficulty from age range
+  groupSize: `${activity.nbMinPersonne}-${activity.nbMaxPersonne} personnes`,
+  description: activity.description || "No description provided",
+})
 
 export default function BookingPage() {
-  const [searchResults, setSearchResults] = useState<Adventure[]>(adventures)
+  const [searchResults, setSearchResults] = useState<Adventure[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [priceRange, setPriceRange] = useState([50, 200])
+  const [priceRange, setPriceRange] = useState([0, 1500])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([])
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [sortBy, setSortBy] = useState("recommended")
   const [showFilters, setShowFilters] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
@@ -138,15 +104,38 @@ export default function BookingPage() {
     },
   })
 
-  // Initialize search index on component mount
+  // Fetch activities from the API on component mount
   useEffect(() => {
-    initializeSearchIndex(adventures)
+    const fetchActivities = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const response = await fetch("http://localhost:8080/activities")
+        if (!response.ok) {
+          throw new Error("Failed to fetch activities")
+        }
+        const data: ApiActivity[] = await response.json()
+        const mappedAdventures = data.map(mapApiToAdventure)
+        setSearchResults(mappedAdventures)
+        await initializeSearchIndex(mappedAdventures)
+      } catch (err) {
+        console.error("Error fetching activities:", err)
+        setError("Une erreur est survenue lors du chargement des activités. Veuillez réessayer.")
+        setSearchResults([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchActivities()
   }, [])
 
   // Enhanced search with Meilisearch
   const performSearch = useCallback(async () => {
     if (!debouncedSearchQuery.trim() && selectedDifficulty.length === 0 && selectedFeatures.length === 0) {
-      setSearchResults(adventures)
+      const response = await fetch("http://localhost:8080/activities")
+      const data: ApiActivity[] = await response.json()
+      setSearchResults(data.map(mapApiToAdventure))
       return
     }
 
@@ -159,9 +148,10 @@ export default function BookingPage() {
         location: form.getValues("location"),
       })
 
-      // Fallback to local filtering if Meilisearch fails
       if (results.length === 0 && debouncedSearchQuery.trim()) {
-        const localResults = adventures.filter((adventure) => {
+        const response = await fetch("http://localhost:8080/activities")
+        const data: ApiActivity[] = await response.json()
+        const localResults = data.map(mapApiToAdventure).filter((adventure) => {
           const matchesSearch =
             adventure.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
             adventure.location.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
@@ -175,19 +165,23 @@ export default function BookingPage() {
         })
         setSearchResults(localResults)
       } else {
-        setSearchResults(results.length > 0 ? results : adventures)
+        setSearchResults(results.length > 0 ? results : (await (await fetch("http://localhost:8080/activities")).json()).map(mapApiToAdventure))
       }
     } catch (error) {
       console.error("Search failed:", error)
-      setSearchResults(adventures)
+      const response = await fetch("http://localhost:8080/activities")
+      const data: ApiActivity[] = await response.json()
+      setSearchResults(data.map(mapApiToAdventure))
     } finally {
       setIsSearching(false)
     }
   }, [debouncedSearchQuery, priceRange, selectedDifficulty, selectedFeatures, form])
 
   useEffect(() => {
-    performSearch()
-  }, [performSearch])
+    if (!isLoading) {
+      performSearch()
+    }
+  }, [performSearch, isLoading])
 
   const handleDifficultyChange = (difficulty: string, checked: boolean) => {
     if (checked) {
@@ -210,11 +204,47 @@ export default function BookingPage() {
     performSearch()
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <p className="text-xl text-gray-700">Chargement des aventures...</p>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <AlertCircle className="w-20 h-20 mx-auto text-red-500" />
+          <h3 className="text-2xl font-semibold text-gray-900 mt-4">{error}</h3>
+          <Button
+            onClick={() => window.location.reload()}
+            className="mt-6 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+          >
+            Réessayer
+          </Button>
+        </motion.div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
       <Header />
 
-      {/* Enhanced Hero Search Section */}
       <section className="relative py-16 lg:py-24 px-4 lg:px-6">
         <div className="absolute inset-0 bg-[url('/tunisian-desert-quad-bikes.png')] bg-cover bg-center opacity-10"></div>
         <div className="relative max-w-7xl mx-auto text-center">
@@ -229,7 +259,6 @@ export default function BookingPage() {
               Réservez des excursions quad, trouvez des guides experts et vivez des aventures inoubliables en Tunisie
             </p>
 
-            {/* Enhanced Search Form */}
             <Card className="max-w-5xl mx-auto p-4 lg:p-8 backdrop-blur-sm bg-white/95 border-amber-200 shadow-2xl">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -316,7 +345,6 @@ export default function BookingPage() {
                     </div>
                   </div>
 
-                  {/* Enhanced Search Bar */}
                   <div className="relative">
                     <Search className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
                     <Input
@@ -330,9 +358,8 @@ export default function BookingPage() {
               </Form>
             </Card>
 
-            {/* Category Pills */}
             <div className="flex flex-wrap justify-center gap-3 mt-8 lg:mt-12">
-              {["Quad", "Aventure", "Désert", "Coucher de Soleil", "Famille", "Expert"].map((category) => (
+              {["Quad", "Aventure", "Outdoor", "Terrestre"].map((category) => (
                 <Button
                   key={category}
                   variant="outline"
@@ -347,10 +374,8 @@ export default function BookingPage() {
         </div>
       </section>
 
-      {/* Enhanced Results Section */}
       <section className="max-w-7xl mx-auto px-4 lg:px-6 pb-16 lg:pb-24">
         <div className="flex flex-col xl:flex-row gap-8 lg:gap-12">
-          {/* Enhanced Filters Sidebar */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -364,7 +389,7 @@ export default function BookingPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setPriceRange([50, 200])
+                    setPriceRange([0, 1500])
                     setSelectedDifficulty([])
                     setSelectedFeatures([])
                     setSearchQuery("")
@@ -376,7 +401,6 @@ export default function BookingPage() {
               </div>
 
               <div className="space-y-8">
-                {/* Price Range */}
                 <div>
                   <Label className="text-sm font-medium text-gray-700 mb-4 block">
                     Gamme de prix: {priceRange[0]}€ - {priceRange[1]}€
@@ -384,20 +408,19 @@ export default function BookingPage() {
                   <Slider
                     value={priceRange}
                     onValueChange={setPriceRange}
-                    max={300}
-                    min={30}
+                    max={1500}
+                    min={0}
                     step={10}
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>30€</span>
-                    <span>300€</span>
+                    <span>0€</span>
+                    <span>1500€</span>
                   </div>
                 </div>
 
                 <Separator />
 
-                {/* Difficulty */}
                 <div>
                   <Label className="text-sm font-medium text-gray-700 mb-4 block">Niveau de difficulté</Label>
                   <div className="space-y-3">
@@ -418,18 +441,10 @@ export default function BookingPage() {
 
                 <Separator />
 
-                {/* Features */}
                 <div>
                   <Label className="text-sm font-medium text-gray-700 mb-4 block">Caractéristiques incluses</Label>
                   <div className="space-y-3">
-                    {[
-                      "Guide Expert",
-                      "Équipement Inclus",
-                      "Transport",
-                      "Photos Incluses",
-                      "Déjeuner Inclus",
-                      "Rafraîchissements",
-                    ].map((feature) => (
+                    {["Guide Expert", "Équipement Inclus", "Transport"].map((feature) => (
                       <div key={feature} className="flex items-center space-x-3">
                         <Checkbox
                           id={feature}
@@ -447,9 +462,7 @@ export default function BookingPage() {
             </Card>
           </motion.div>
 
-          {/* Results */}
           <div className="flex-1">
-            {/* Enhanced Results Header */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 lg:mb-12 gap-4 lg:gap-6">
               <div>
                 <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
@@ -503,7 +516,6 @@ export default function BookingPage() {
               </div>
             </div>
 
-            {/* Enhanced Adventure Cards */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -522,9 +534,12 @@ export default function BookingPage() {
                   <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group border-0 shadow-lg">
                     <div className="relative">
                       <img
-                        src={adventure.image || "/placeholder.svg?height=240&width=400&query=quad adventure tunisia"}
+                        src={adventure.image}
                         alt={adventure.title}
                         className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg?height=240&width=400&query=quad adventure tunisia"
+                        }}
                       />
                       <div className="absolute top-3 left-3">
                         <Badge className="bg-amber-500 text-white shadow-md text-xs px-2 py-1">
@@ -564,7 +579,7 @@ export default function BookingPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-1 mb-4">
-                        {adventure.features.slice(0, 2).map((feature:any) => (
+                        {adventure.features.slice(0, 2).map((feature) => (
                           <Badge
                             key={feature}
                             variant="outline"
@@ -598,7 +613,6 @@ export default function BookingPage() {
               ))}
             </motion.div>
 
-            {/* Enhanced Empty State */}
             {searchResults.length === 0 && (
               <motion.div
                 className="text-center py-16 lg:py-24"
@@ -616,7 +630,7 @@ export default function BookingPage() {
                 <Button
                   onClick={() => {
                     setSearchQuery("")
-                    setPriceRange([50, 200])
+                    setPriceRange([0, 1500])
                     setSelectedDifficulty([])
                     setSelectedFeatures([])
                   }}
@@ -629,7 +643,6 @@ export default function BookingPage() {
           </div>
         </div>
 
-        {/* Enhanced Call to Action */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
