@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Calendar, Search, Filter, Eye, ArrowLeft, Users, DollarSign, Clock, MapPin } from "lucide-react"
+import { Calendar, Search, Filter, Eye, ArrowLeft, Users, DollarSign, Clock, MapPin, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { RoleGuard } from "@/components/auth/role-guard"
 import { ProtectedRoute } from "@/components/auth/protected-route"
@@ -60,6 +60,8 @@ export default function BookingsManagementPage() {
   const [paymentFilter, setPaymentFilter] = useState("all")
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
   const { toast } = useToast()
 
   useEffect(() => {
@@ -132,6 +134,30 @@ export default function BookingsManagementPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSyncAll = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/sync/payments', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to sync payments: ${response.statusText}`)
+      }
+
+      const data = await response.text()
+      setSyncMessage(data)
+      await loadBookings()
+    } catch (error) {
+      console.error("Error syncing payments:", error)
+      setSyncMessage('❌ Failed to sync payments. Please try again.')
+    } finally {
+      setIsSyncModalOpen(true)
     }
   }
 
@@ -445,10 +471,16 @@ export default function BookingsManagementPage() {
             {/* Bookings Table */}
             <Card className="backdrop-blur-sm bg-white/90 border-amber-200 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="w-5 h-5 mr-2 text-amber-600" />
-                  Liste des réservations ({filteredBookings.length})
-                </CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="flex items-center">
+                    <Calendar className="w-5 h-5 mr-2 text-amber-600" />
+                    Liste des réservations ({filteredBookings.length})
+                  </CardTitle>
+                  <Button onClick={handleSyncAll} variant="default" size="sm">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Sync All
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -569,6 +601,21 @@ export default function BookingsManagementPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Sync Modal */}
+            <Dialog open={isSyncModalOpen} onOpenChange={setIsSyncModalOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Résultats de la synchronisation</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <p className="text-lg font-medium">{syncMessage}</p>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={() => setIsSyncModalOpen(false)}>Fermer</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </RoleGuard>
