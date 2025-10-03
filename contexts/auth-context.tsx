@@ -45,6 +45,161 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const router = useRouter()
   const supabase = getSupabaseClient()
 
+  const BACKEND_SYNC_URL = "http://localhost:8080/api/users/api/users/sync"  // Corrected URL (removed duplication from /api/users/api/users/sync)
+
+  const syncUser = useCallback(async (user: User) => {
+    if (!user.id || !user.email) return
+
+    const payload = {
+      id: user.id,
+      email: user.email,
+      user_metadata: user.user_metadata || {}
+    }
+
+    try {
+      const response = await fetch(BACKEND_SYNC_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Sync failed: ${response.statusText}`)
+      }
+
+      console.log("[v0] User synced successfully to backend")
+    } catch (error) {
+      console.error("[v0] User sync error:", error)
+      // Optional: You could add a retry mechanism or toast notification here
+    }
+  }, [])
+
+  // Define auth functions first to avoid initialization order issues
+  const signOut = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { error } = await supabase.auth.signOut()
+      if (!error) {
+        router.push("/")
+      }
+      return { error }
+    } catch (error) {
+      console.error("[v0] Sign out error:", error)
+      return { error: error as AuthError }
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase.auth, router])
+
+  // Sign up function
+  const signUp = useCallback(async (email: string, password: string, options?: any) => {
+    try {
+      setLoading(true)
+      const { error, data } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
+          ...options,
+        },
+      })
+      // Sync after successful signup (user might be available immediately or after confirmation)
+      if (!error && data.user) {
+        await syncUser(data.user)
+      }
+      return { error }
+    } catch (error) {
+      console.error("[v0] Sign up error:", error)
+      return { error: error as AuthError }
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase.auth, syncUser])
+
+  // Sign in function
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      setLoading(true)
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      // Sync after successful sign in
+      if (!error && data.user) {
+        await syncUser(data.user)
+      }
+      return { error }
+    } catch (error) {
+      console.error("[v0] Sign in error:", error)
+      return { error: error as AuthError }
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase.auth, syncUser])
+
+  // Reset password function
+  const resetPassword = useCallback(async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo:
+          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/reset-password`,
+      })
+      return { error }
+    } catch (error) {
+      console.error("[v0] Reset password error:", error)
+      return { error: error as AuthError }
+    }
+  }, [supabase.auth])
+
+  // Update password function
+  const updatePassword = useCallback(async (password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password,
+      })
+      return { error }
+    } catch (error) {
+      console.error("[v0] Update password error:", error)
+      return { error: error as AuthError }
+    }
+  }, [supabase.auth])
+
+  const updateProfile = useCallback(async (updates: { first_name?: string; last_name?: string; phone?: string }) => {
+    try {
+      const { error, data } = await supabase.auth.updateUser({
+        data: updates,
+      })
+      // Sync after profile update
+      if (!error && data.user) {
+        await syncUser(data.user)
+      }
+      return { error }
+    } catch (error) {
+      console.error("[v0] Update profile error:", error)
+      return { error: error as AuthError }
+    }
+  }, [supabase.auth, syncUser])
+
+  const resendConfirmation = useCallback(async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
+        },
+      })
+      return { error }
+    } catch (error) {
+      console.error("[v0] Resend confirmation error:", error)
+      return { error: error as AuthError }
+    }
+  }, [supabase.auth])
+
   const isSessionExpired = useCallback(() => {
     if (!session?.expires_at) return false
     return Date.now() >= session.expires_at * 1000
@@ -64,11 +219,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log("[v0] Session refreshed successfully")
         setSession(data.session)
         setUser(data.session?.user ?? null)
+        // Sync on refresh if user exists
+        if (data.session?.user) {
+          await syncUser(data.session.user)
+        }
       }
     } catch (error) {
       console.error("[v0] Session refresh error:", error)
     }
-  }, [supabase.auth])
+  }, [supabase.auth, syncUser, signOut])
 
   useEffect(() => {
     if (session?.expires_at) {
@@ -115,6 +274,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           setSession(session)
           setUser(session?.user ?? null)
+          // Sync initial user if exists
+          if (session?.user) {
+            await syncUser(session.user)
+          }
         }
       } catch (error) {
         console.error("[v0] Error in getInitialSession:", error)
@@ -134,6 +297,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+
+      // Sync user on relevant events
+      if (session?.user && (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED")) {
+        await syncUser(session.user)
+      }
 
       // Handle different auth events
       switch (event) {
@@ -165,119 +333,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         clearInterval(refreshInterval)
       }
     }
-  }, [supabase.auth, router, refreshInterval])
-
-  // Sign up function
-  const signUp = async (email: string, password: string, options?: any) => {
-    try {
-      setLoading(true)
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
-          ...options,
-        },
-      })
-      return { error }
-    } catch (error) {
-      console.error("[v0] Sign up error:", error)
-      return { error: error as AuthError }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Sign in function
-  const signIn = async (email: string, password: string) => {
-    try {
-      setLoading(true)
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      return { error }
-    } catch (error) {
-      console.error("[v0] Sign in error:", error)
-      return { error: error as AuthError }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Sign out function
-  const signOut = async () => {
-    try {
-      setLoading(true)
-      const { error } = await supabase.auth.signOut()
-      if (!error) {
-        router.push("/")
-      }
-      return { error }
-    } catch (error) {
-      console.error("[v0] Sign out error:", error)
-      return { error: error as AuthError }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Reset password function
-  const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo:
-          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/reset-password`,
-      })
-      return { error }
-    } catch (error) {
-      console.error("[v0] Reset password error:", error)
-      return { error: error as AuthError }
-    }
-  }
-
-  // Update password function
-  const updatePassword = async (password: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password,
-      })
-      return { error }
-    } catch (error) {
-      console.error("[v0] Update password error:", error)
-      return { error: error as AuthError }
-    }
-  }
-
-  const updateProfile = async (updates: { first_name?: string; last_name?: string; phone?: string }) => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        data: updates,
-      })
-      return { error }
-    } catch (error) {
-      console.error("[v0] Update profile error:", error)
-      return { error: error as AuthError }
-    }
-  }
-
-  const resendConfirmation = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
-        },
-      })
-      return { error }
-    } catch (error) {
-      console.error("[v0] Resend confirmation error:", error)
-      return { error: error as AuthError }
-    }
-  }
+  }, [supabase.auth, router, refreshInterval, syncUser, signOut])  // Added signOut to deps if needed, but since it's stable with useCallback, it's fine
 
   const value: AuthContextType = {
     user,
