@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -25,6 +23,7 @@ import { RoleGuard } from "@/components/auth/role-guard"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { supabase } from "@/lib/supabase/admin"
 import { useToast } from "@/hooks/use-toast"
+import { Header } from "@/components/header"
 
 interface UserProfile {
   id: string
@@ -58,10 +57,42 @@ export default function UsersManagementPage() {
 
   const loadUsers = async () => {
     try {
-      const { data, error } = await supabase.from("user_profiles").select("*").order("created_at", { ascending: false })
+      const response = await fetch('http://localhost:8080/api/users')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const apiData = await response.json()
+      const usersData = apiData.users || []
 
-      if (error) throw error
-      setUsers(data || [])
+      const transformedUsers: UserProfile[] = usersData.map((user: any) => {
+        let firstName = ''
+        let lastName = ''
+        const metadata = user.user_metadata || {}
+
+        if (metadata.first_name && metadata.last_name) {
+          firstName = metadata.first_name
+          lastName = metadata.last_name
+        } else if (metadata.full_name || metadata.name) {
+          const fullName = metadata.full_name || metadata.name
+          const names = fullName.split(' ')
+          firstName = names[0] || ''
+          lastName = names.slice(1).join(' ') || ''
+        }
+
+        return {
+          id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          phone: user.phone || metadata.phone || '',
+          role: 'customer', // Default; can be overridden by fetching from user_profiles if needed
+          permissions: [],
+          avatar_url: metadata.avatar_url || metadata.picture || '',
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+        }
+      })
+
+      setUsers(transformedUsers)
     } catch (error) {
       console.error("Error loading users:", error)
       toast({
@@ -97,8 +128,14 @@ export default function UsersManagementPage() {
     try {
       const { error } = await supabase
         .from("user_profiles")
-        .update({ role: newRole, updated_at: new Date().toISOString() })
-        .eq("id", userId)
+        .upsert(
+          { 
+            id: userId, 
+            role: newRole, 
+            updated_at: new Date().toISOString() 
+          },
+          { onConflict: 'id' }
+        )
 
       if (error) throw error
 
@@ -121,8 +158,14 @@ export default function UsersManagementPage() {
     try {
       const { error } = await supabase
         .from("user_profiles")
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("id", userId)
+        .upsert(
+          { 
+            id: userId, 
+            ...updates, 
+            updated_at: new Date().toISOString() 
+          },
+          { onConflict: 'id' }
+        )
 
       if (error) throw error
 
@@ -171,6 +214,7 @@ export default function UsersManagementPage() {
   if (loading) {
     return (
       <ProtectedRoute>
+        <Header />
         <RoleGuard allowedRoles={["admin", "super_admin"]}>
           <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
             <div className="text-center">
@@ -185,6 +229,7 @@ export default function UsersManagementPage() {
 
   return (
     <ProtectedRoute>
+      <Header />
       <RoleGuard allowedRoles={["admin", "super_admin"]}>
         <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
           <div className="container mx-auto px-4 py-8">
@@ -326,7 +371,7 @@ export default function UsersManagementPage() {
                           <TableCell>
                             <div className="flex items-center space-x-3">
                               <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                                {(user.first_name || "U").charAt(0)}
+                                {(user.first_name || "U").charAt(0).toUpperCase()}
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900">
@@ -420,7 +465,12 @@ function UserEditForm({ user, onSave, onCancel }: UserEditFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(formData)
+    onSave({
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      phone: formData.phone,
+      role: formData.role,
+    })
   }
 
   return (

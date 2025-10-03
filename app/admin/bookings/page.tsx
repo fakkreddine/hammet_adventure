@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -77,7 +76,6 @@ export default function BookingsManagementPage() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          // Add authentication headers if required, e.g., Authorization: `Bearer ${token}`
         },
       })
 
@@ -86,33 +84,44 @@ export default function BookingsManagementPage() {
       }
 
       const data = await response.json()
-      // Transform API response to match Booking interface
-      const transformedBookings: Booking[] = data.map((booking: any) => ({
-        id: booking.id.toString(),
-        user_id: booking.user.id.toString(),
-        tour_id: booking.activity.id.toString(),
-        booking_date: booking.activityDate.split("T")[0],
-        booking_time: booking.activityDate.split("T")[1].slice(0, 5),
-        participants: booking.nbPersonnes,
-        total_price: booking.amountToPay,
-        status: booking.status || (booking.paymentStatus === "PENDING" ? "pending" : "confirmed"),
-        payment_status: booking.paymentStatus.toLowerCase(),
-        payment_method: null,
-        special_requests: null,
-        promo_code: null,
-        discount_amount: 0,
-        created_at: booking.bookingDate,
-        updated_at: booking.updatedAt || null,
-        user_profiles: {
-          first_name: booking.user.prenom,
-          last_name: booking.user.nom,
-          phone: booking.user.numero,
-        },
-        tours: {
-          title: booking.activity.nom,
-          location: booking.activity.type,
-        },
-      }))
+      const transformedBookings: Booking[] = data.map((booking: any) => {
+        // Extract time from timeSlot (e.g., "09:00-11:00" -> "09:00")
+        const timeSlot = booking.timeSlot || ''
+        const bookingTime = timeSlot.includes('-') ? timeSlot.split('-')[0].trim() : ''
+
+        // Fallback for user profile if null
+        const firstName = booking.user.prenom || ''
+        const lastName = booking.user.nom || ''
+        const displayName = firstName || lastName ? `${firstName} ${lastName}`.trim() : booking.user.email || 'Utilisateur inconnu'
+        const phone = booking.user.numero || 'Non fourni'
+
+        return {
+          id: booking.id.toString(),
+          user_id: booking.user.id.toString(),
+          tour_id: booking.activity.id.toString(),
+          booking_date: booking.activityDate || '',  // No split needed; it's just YYYY-MM-DD
+          booking_time: bookingTime,  // From timeSlot
+          participants: booking.nbPersonnes || 0,
+          total_price: booking.amountToPay || 0,
+          status: (booking.status || '').toLowerCase() || (booking.paymentStatus === "PENDING" ? "pending" : "confirmed"),
+          payment_status: (booking.paymentStatus || '').toLowerCase(),
+          payment_method: null,  // TODO: Map if API adds it
+          special_requests: null,  // TODO: Map if API adds it
+          promo_code: null,  // TODO: Map if API adds it
+          discount_amount: 0,  // TODO: Map if API adds it
+          created_at: booking.bookingDate || '',
+          updated_at: booking.updatedAt || null,
+          user_profiles: {
+            first_name: firstName,
+            last_name: lastName,
+            phone,
+          },
+          tours: {
+            title: booking.activity.nom || '',
+            location: booking.activity.type || '',
+          },
+        }
+      })
       setBookings(transformedBookings)
     } catch (error) {
       console.error("Error loading bookings:", error)
@@ -158,7 +167,7 @@ export default function BookingsManagementPage() {
           "Content-Type": "application/json",
           // Add authentication headers if required, e.g., Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus.toUpperCase() }),  // Uppercase for API consistency
       })
 
       if (!response.ok) {
@@ -171,7 +180,7 @@ export default function BookingsManagementPage() {
           booking.id === bookingId
             ? {
                 ...booking,
-                status: updatedBooking.status,
+                status: updatedBooking.status?.toLowerCase() || newStatus,
                 updated_at: updatedBooking.updatedAt || new Date().toISOString(),
               }
             : booking,
@@ -199,7 +208,7 @@ export default function BookingsManagementPage() {
           "Content-Type": "application/json",
           // Add authentication headers if required, e.g., Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ paymentStatus: newPaymentStatus }),
+        body: JSON.stringify({ paymentStatus: newPaymentStatus.toUpperCase() }),  // Uppercase for API consistency
       })
 
       if (!response.ok) {
@@ -212,7 +221,7 @@ export default function BookingsManagementPage() {
           booking.id === bookingId
             ? {
                 ...booking,
-                payment_status: updatedBooking.paymentStatus.toLowerCase(),
+                payment_status: updatedBooking.paymentStatus?.toLowerCase() || newPaymentStatus,
                 updated_at: updatedBooking.updatedAt || new Date().toISOString(),
               }
             : booking,
@@ -457,100 +466,104 @@ export default function BookingsManagementPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredBookings.map((booking) => (
-                        <TableRow key={booking.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {booking.user_profiles.first_name} {booking.user_profiles.last_name}
-                              </p>
-                              <p className="text-sm text-gray-500">{booking.user_profiles.phone}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium text-gray-900">{booking.tours.title}</p>
-                              <div className="flex items-center text-sm text-gray-500">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                {booking.tours.location}
+                      {filteredBookings.map((booking) => {
+                        const displayName = booking.user_profiles.first_name || booking.user_profiles.last_name 
+                          ? `${booking.user_profiles.first_name} ${booking.user_profiles.last_name}`.trim() 
+                          : booking.user_profiles.phone !== 'Non fourni' ? booking.user_profiles.phone : 'Utilisateur inconnu'
+
+                        return (
+                          <TableRow key={booking.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-gray-900">{displayName}</p>
+                                <p className="text-sm text-gray-500">{booking.user_profiles.phone}</p>
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {new Date(booking.booking_date).toLocaleDateString("fr-FR")}
-                              </p>
-                              <p className="text-sm text-gray-500">{booking.booking_time}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Users className="w-4 h-4 mr-1 text-gray-400" />
-                              {booking.participants}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <p className="font-medium text-gray-900">€{booking.total_price}</p>
-                            {booking.discount_amount > 0 && (
-                              <p className="text-sm text-green-600">-€{booking.discount_amount}</p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={booking.status}
-                              onValueChange={(newStatus) => updateBookingStatus(booking.id, newStatus)}
-                            >
-                              <SelectTrigger className="w-32">
-                                <Badge className={getStatusBadgeColor(booking.status)}>
-                                  {getStatusLabel(booking.status)}
-                                </Badge>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pending">En attente</SelectItem>
-                                <SelectItem value="confirmed">Confirmée</SelectItem>
-                                <SelectItem value="completed">Terminée</SelectItem>
-                                <SelectItem value="cancelled">Annulée</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={booking.payment_status}
-                              onValueChange={(newPaymentStatus) => updatePaymentStatus(booking.id, newPaymentStatus)}
-                            >
-                              <SelectTrigger className="w-32">
-                                <Badge className={getPaymentBadgeColor(booking.payment_status)}>
-                                  {getPaymentLabel(booking.payment_status)}
-                                </Badge>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pending">En attente</SelectItem>
-                                <SelectItem value="paid">Payé</SelectItem>
-                                <SelectItem value="refunded">Remboursé</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="sm" onClick={() => setSelectedBooking(booking)}>
-                                    <Eye className="w-3 h-3" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Détails de la réservation</DialogTitle>
-                                    <DialogDescription>Informations complètes de la réservation</DialogDescription>
-                                  </DialogHeader>
-                                  {selectedBooking && <BookingDetailsView booking={selectedBooking} />}
-                                </DialogContent>
-                              </Dialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-gray-900">{booking.tours.title}</p>
+                                <div className="flex items-center text-sm text-gray-500">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  {booking.tours.location}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  {new Date(booking.booking_date).toLocaleDateString("fr-FR")}
+                                </p>
+                                <p className="text-sm text-gray-500">{booking.booking_time}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Users className="w-4 h-4 mr-1 text-gray-400" />
+                                {booking.participants}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <p className="font-medium text-gray-900">€{booking.total_price.toFixed(2)}</p>
+                              {booking.discount_amount > 0 && (
+                                <p className="text-sm text-green-600">-€{booking.discount_amount}</p>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={booking.status}
+                                onValueChange={(newStatus) => updateBookingStatus(booking.id, newStatus)}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <Badge className={getStatusBadgeColor(booking.status)}>
+                                    {getStatusLabel(booking.status)}
+                                  </Badge>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">En attente</SelectItem>
+                                  <SelectItem value="confirmed">Confirmée</SelectItem>
+                                  <SelectItem value="completed">Terminée</SelectItem>
+                                  <SelectItem value="cancelled">Annulée</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={booking.payment_status}
+                                onValueChange={(newPaymentStatus) => updatePaymentStatus(booking.id, newPaymentStatus)}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <Badge className={getPaymentBadgeColor(booking.payment_status)}>
+                                    {getPaymentLabel(booking.payment_status)}
+                                  </Badge>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">En attente</SelectItem>
+                                  <SelectItem value="paid">Payé</SelectItem>
+                                  <SelectItem value="refunded">Remboursé</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+                                  <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm" onClick={() => setSelectedBooking(booking)}>
+                                      <Eye className="w-3 h-3" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-2xl">
+                                    <DialogHeader>
+                                      <DialogTitle>Détails de la réservation</DialogTitle>
+                                      <DialogDescription>Informations complètes de la réservation</DialogDescription>
+                                    </DialogHeader>
+                                    {selectedBooking && <BookingDetailsView booking={selectedBooking} />}
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -568,6 +581,10 @@ interface BookingDetailsViewProps {
 }
 
 function BookingDetailsView({ booking }: BookingDetailsViewProps) {
+  const displayName = booking.user_profiles.first_name || booking.user_profiles.last_name 
+    ? `${booking.user_profiles.first_name} ${booking.user_profiles.last_name}`.trim() 
+    : 'Utilisateur inconnu'
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
@@ -584,9 +601,7 @@ function BookingDetailsView({ booking }: BookingDetailsViewProps) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label className="text-sm font-medium text-gray-600">Client</Label>
-          <p className="text-sm text-gray-900">
-            {booking.user_profiles.first_name} {booking.user_profiles.last_name}
-          </p>
+          <p className="text-sm text-gray-900">{displayName}</p>
           <p className="text-sm text-gray-500">{booking.user_profiles.phone}</p>
         </div>
         <div>
@@ -614,7 +629,7 @@ function BookingDetailsView({ booking }: BookingDetailsViewProps) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label className="text-sm font-medium text-gray-600">Prix total</Label>
-          <p className="text-sm text-gray-900">€{booking.total_price}</p>
+          <p className="text-sm text-gray-900">€{booking.total_price.toFixed(2)}</p>
         </div>
         <div>
           <Label className="text-sm font-medium text-gray-600">Méthode de paiement</Label>
