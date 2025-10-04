@@ -9,8 +9,8 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react"
 import { AccountSelectionStep } from "@/components/reservation/account-selection-step"
 import { ReservationDetailsStep } from "@/components/reservation/reservation-details-step"
 import { ReservationSummaryStep } from "@/components/reservation/reservation-summary-step"
-import { PaymentStep } from "@/components/reservation/payment-step"
 import { SuccessStep } from "@/components/reservation/success-step"
+import { useParams } from "next/navigation"
 import { AuthWrapper } from "@/components/auth/auth-wrapper"
  import { useAuth } from "@/contexts/auth-context"
 import { se } from "date-fns/locale"
@@ -34,10 +34,11 @@ const steps = [
   { id: 1, title: "Compte", description: "Sélection du compte" },
   { id: 2, title: "Détails", description: "Informations de réservation" },
   { id: 3, title: "Résumé", description: "Résumé de la réservation" },
-  { id: 4, title: "Paiement", description: "Méthode de paiement" },
 ]
 
 export default function ReservationPage() {
+  const params = useParams();
+  const activityId = params?.id ? Number(params.id) : 1;
   const [currentStep, setCurrentStep] = useState(1)
   const { user, loading } = useAuth()
   const [reservationData, setReservationData] = useState<ReservationData>({
@@ -57,8 +58,34 @@ export default function ReservationPage() {
     setReservationData((prev) => ({ ...prev, ...data }))
   }
 
-  const nextStep = () => {
-    if (currentStep < 5) {
+
+  // Function to make reservation API request
+  const makeReservation = async () => {
+    try {
+      const userId = encodeURIComponent(reservationData.account.id);
+      const activityDate = reservationData.date ? encodeURIComponent(new Date(reservationData.date).toISOString()) : '';
+      const nbPersonnes = reservationData.persons;
+      const paymentPercent = 100;
+      const url = `http://localhost:8080/bookings/book?userId=${userId}&activityId=${activityId}&activityDate=${activityDate}&nbPersonnes=${nbPersonnes}&paymentPercent=${paymentPercent}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      console.log('Reservation API response:', result);
+    } catch (error) {
+      console.error('Error making reservation:', error);
+    }
+  };
+
+  const nextStep = async () => {
+    // If on summary step (step 3), make reservation before moving to success
+    if (currentStep === 3) {
+      await makeReservation();
+    }
+    if (currentStep < 4) {
       setCurrentStep((prev) => prev + 1)
     }
   }
@@ -77,35 +104,27 @@ export default function ReservationPage() {
         return reservationData.persons > 0 && reservationData.date
       case 3:
         return true
-      case 4:
-        return !!reservationData.paymentMethod
       default:
         return false
     }
   }
 
-  const progressPercentage = currentStep === 5 ? 100 : (currentStep / steps.length) * 100
+  const progressPercentage = currentStep === 4 ? 100 : (currentStep / steps.length) * 100
 
-  const handlePaymentConfirm = () => {
-    // Simulate payment processing
-    setTimeout(() => {
-      setCurrentStep(5) // Go to success page
-    }, 1000)
-  }
-   useEffect(() => {
-  if (!loading && user) { 
-    updateReservationData({
-      account: {
-        id: user?.id,
-        name: user?.user_metadata?.last_name + " " + user?.user_metadata?.first_name || "Utilisateur",
-        email: user?.user_metadata?.email || "Email Inconnu",
-        avatar: user?.avatar || "Avatar Inconnu",
-      }
-    })
-  }
 
-  
-}, [loading, user]);
+  // No payment step, so no handlePaymentConfirm needed
+  useEffect(() => {
+    if (!loading && user) { 
+      updateReservationData({
+        account: {
+          id: user?.id,
+          name: user?.user_metadata?.last_name + " " + user?.user_metadata?.first_name || "Utilisateur",
+          email: user?.user_metadata?.email || "Email Inconnu",
+          avatar: user?.avatar || "Avatar Inconnu",
+        }
+      })
+    }
+  }, [loading, user]);
   
 
   return (
@@ -197,18 +216,15 @@ export default function ReservationPage() {
             transition={{ duration: 0.3 }}
             className="mb-4 sm:mb-6 md:mb-8"
           >
-            {currentStep === 1 && <AccountSelectionStep data={reservationData} onUpdate={updateReservationData}  forward={nextStep}/>}
-            {currentStep === 2 && <ReservationDetailsStep data={reservationData} onUpdate={updateReservationData} />}
-            {currentStep === 3 && <ReservationSummaryStep data={reservationData} onUpdate={updateReservationData} />}
-            {currentStep === 4 && (
-              <PaymentStep data={reservationData} onUpdate={updateReservationData} onConfirm={handlePaymentConfirm} />
-            )}
-            {currentStep === 5 && <SuccessStep data={reservationData} />}
+            {currentStep === 1 && <AccountSelectionStep data={reservationData} onUpdate={updateReservationData}  forward={nextStep}/>} 
+            {currentStep === 2 && <ReservationDetailsStep data={reservationData} onUpdate={updateReservationData} />} 
+            {currentStep === 3 && <ReservationSummaryStep data={reservationData} onUpdate={updateReservationData} />} 
+            {currentStep === 4 && <SuccessStep data={reservationData} />}
           </motion.div>
         </AnimatePresence>
 
         {/* Navigation - Hide on success page */}
-        {currentStep !== 5 && (
+  {currentStep !== 4 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

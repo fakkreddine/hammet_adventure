@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Calendar, Users, MapPin, Clock, Tag, Percent,Shield,Camera } from "lucide-react"
+import { Calendar, Users, MapPin, Clock, Tag, Percent,Shield,Camera,Heart ,Award,Check,Star  } from "lucide-react"
 import type { ReservationData } from "@/app/reservation/page"
 import { useState } from "react"
+import { useParams } from "next/navigation"
 
 interface ReservationSummaryStepProps {
   data: ReservationData
@@ -16,6 +17,29 @@ interface ReservationSummaryStepProps {
 }
 
 export function ReservationSummaryStep({ data, onUpdate }: ReservationSummaryStepProps) {
+  const params = useParams();
+  const activityId = params?.id ? Number(params.id) : 1;
+
+  // Function to make reservation API request
+  const makeReservation = async () => {
+    try {
+      const userId = encodeURIComponent(data.account.id);
+      const activityDate = data.date ? encodeURIComponent(new Date(data.date).toISOString()) : '';
+      const nbPersonnes = data.persons;
+      const paymentPercent = 100;
+      const url = `http://localhost:8080/bookings/book?userId=${userId}&activityId=${activityId}&activityDate=${activityDate}&nbPersonnes=${nbPersonnes}&paymentPercent=${paymentPercent}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      console.log('Reservation API response:', result);
+    } catch (error) {
+      console.error('Error making reservation:', error);
+    }
+  };
   const [promoCode, setPromoCode] = useState(data.promoCode || "")
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)
   const [promoError, setPromoError] = useState("")
@@ -176,8 +200,15 @@ export function ReservationSummaryStep({ data, onUpdate }: ReservationSummarySte
   // Add more adventures as needed...
 ]
 
+const [selectedImage, setSelectedImage] = useState(0)
+
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
+      <div className="flex justify-end mt-4">
+        <Button onClick={makeReservation} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold">
+          Confirmer la réservation (API)
+        </Button>
+      </div>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <Card className="backdrop-blur-sm bg-white/95 border-amber-200 shadow-xl">
           <CardHeader className="pb-3 sm:pb-4 md:pb-6">
@@ -186,207 +217,138 @@ export function ReservationSummaryStep({ data, onUpdate }: ReservationSummarySte
               Résumé de la Réservation
             </CardTitle>
           </CardHeader>
-          <section className="max-w-7xl mx-auto px-4 lg:px-6 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Image Gallery */}
-          <div className="space-y-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="relative"
-            >
-              <img
-                src={adventures[1].images[selectedImage] || "/placeholder.svg"}
-                alt={adventures[1].title}
-                className="w-full h-96 object-cover rounded-xl shadow-lg"
-              />
-              <Button variant="ghost" size="sm" className="absolute top-4 right-4 bg-white/90 hover:bg-white shadow-md">
-                <Heart className="w-4 h-4" />
-              </Button>
-            </motion.div>
+         
 
-            {/* Thumbnail Gallery */}
-            <div className="grid grid-cols-4 gap-2">
-              {adventures[1].images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`relative h-20 rounded-lg overflow-hidden transition-all ${
-                    selectedImage === index ? "ring-2 ring-amber-500" : "hover:opacity-80"
-                  }`}
-                >
-                  <img
-                    src={image || "/placeholder.svg"}
-                    alt={`${adventures[1].title} ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Adventure Info */}
-          <div className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <Badge className="bg-amber-500 text-white mb-3">{adventure.category}</Badge>
-                  <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">{adventure.title}</h1>
-                  <div className="flex items-center text-gray-600 mb-4">
-                    <MapPin className="w-5 h-5 mr-2" />
-                    <span className="text-lg">{adventure.location}</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-amber-600">{adventure.price}€</div>
-                  <div className="text-sm text-gray-500">par personne</div>
-                </div>
-              </div>
-
-              {/* Quick Info */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="flex items-center">
-                  <Clock className="w-5 h-5 mr-3 text-amber-600" />
-                  <div>
-                    <div className="font-medium">Durée</div>
-                    <div className="text-sm text-gray-600">{adventure.duration}</div>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <Users className="w-5 h-5 mr-3 text-amber-600" />
-                  <div>
-                    <div className="font-medium">Groupe</div>
-                    <div className="text-sm text-gray-600">{adventure.groupSize}</div>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <Award className="w-5 h-5 mr-3 text-amber-600" />
-                  <div>
-                    <div className="font-medium">Niveau</div>
-                    <div className="text-sm text-gray-600">{adventure.difficulty}</div>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <Star className="w-5 h-5 mr-3 text-yellow-400 fill-current" />
-                  <div>
-                    <div className="font-medium">{adventure.rating}/5</div>
-                    <div className="text-sm text-gray-600">{adventure.reviews} avis</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <p className="text-gray-700 text-lg leading-relaxed mb-6">{adventure.description}</p>
-
-              {/* Features */}
-              <div className="flex flex-wrap gap-2 mb-8">
-                {adventure.features.map((feature) => (
-                  <Badge key={feature} variant="outline" className="border-amber-200 text-amber-700">
-                    <Check className="w-3 h-3 mr-1" />
-                    {feature}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  size="lg"
-                  className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold h-12"
-                 
-                >
-                  Réserver Maintenant
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="border-amber-300 text-amber-700 hover:bg-amber-50 h-12 bg-transparent"
-                >
-                  <Camera className="w-4 h-4 mr-2" />
-                  Partager
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-          <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+          <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-">
             {/* Adventure Details */}
             <div className="space-y-3 sm:space-y-4">
-               <div className="space-y-4">
-                  <h4 className="font-semibold text-lg text-gray-900 flex items-center">
-                    <Shield className="w-5 h-5 mr-2 text-green-600" />
-                    Inclus dans votre aventure
-                  </h4>
-                  <div className="space-y-2">
-                    {[
-                      "Quad professionnel et équipement de sécurité",
-                      "Guide expérimenté parlant français",
-                      "Casque et lunettes de protection",
-                      "Briefing sécurité complet",
-                      "Photos souvenirs de votre aventure",
-                      "Thé traditionnel dans le désert",
-                    ].map((item, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
-                        <span className="text-sm text-gray-700">{item}</span>
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Image Gallery */}
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="relative"
+                >
+                  <img
+                    src={adventures[1].images[selectedImage] || "/placeholder.svg"}
+                    alt={adventures[1].title}
+                    className="w-full h-96 object-cover rounded-xl shadow-lg"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-4 right-4 bg-white/90 hover:bg-white shadow-md"
+                  >
+                    <Heart className="w-4 h-4" />
+                  </Button>
+                </motion.div>
+
+                {/* Thumbnail Gallery */}
+                <div className="grid grid-cols-4 gap-2">
+                  {adventures[1].images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`relative h-20 rounded-lg overflow-hidden transition-all ${
+                        selectedImage === index ? "ring-2 ring-amber-500" : "hover:opacity-80"
+                      }`}
+                    >
+                      <img
+                        src={image || "/placeholder.svg"}
+                        alt={`${adventures[1].title} ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Adventure Info */}
+              <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  {/* Adventure Title and Location */}
+                  <div className="space-y-4 mb-6">
+                    <div className="flex items-center space-x-3">
+                      <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold text-lg text-gray-900">Aventure Quad en Tunisie</p>
+                        <p className="text-sm text-gray-600">Désert de Douz, Tunisie</p>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-sm sm:text-base md:text-lg text-gray-900">
-                      Aventure Quad en Tunisie
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-600">Désert de Douz, Tunisie</p>
+
+                  {/* Reservation Details Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-gray-600">Date</p>
+                        <p className="font-medium text-base text-gray-900">{formatDate(data.date)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Users className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-gray-600">Participants</p>
+                        <p className="font-medium text-base text-gray-900">
+                          {data.persons} personne{data.persons > 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-gray-600">Durée</p>
+                        <p className="font-medium text-base text-gray-900">4 heures</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                        {data.paymentOption === "now" ? "Paiement immédiat" : "Paiement sur place"}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Date</p>
-                    <p className="font-medium text-sm sm:text-base text-gray-900">{formatDate(data.date)}</p>
+            <Separator className="my-8" />
+
+            {/* Adventure Features Section */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-lg text-gray-900 flex items-center">
+                <Shield className="w-5 h-5 mr-2 text-green-600" />
+                Inclus dans votre aventure
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[
+                  "Quad professionnel et équipement de sécurité",
+                  "Guide expérimenté parlant français",
+                  "Casque et lunettes de protection",
+                  "Briefing sécurité complet",
+                  "Photos souvenirs de votre aventure",
+                  "Thé traditionnel dans le désert",
+                ].map((item, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
+                    <span className="text-sm text-gray-700">{item}</span>
                   </div>
-                </div>
-
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Participants</p>
-                    <p className="font-medium text-sm sm:text-base text-gray-900">
-                      {data.persons} personne{data.persons > 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Durée</p>
-                    <p className="font-medium text-sm sm:text-base text-gray-900">4 heures</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs sm:text-sm">
-                    {data.paymentOption === "now" ? "Paiement immédiat" : "Paiement sur place"}
-                  </Badge>
-                </div>
+                ))}
               </div>
+            </div>
+
+               
+             
+            
             </div>
 
             <Separator className="my-4 sm:my-6" />
