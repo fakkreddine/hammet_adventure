@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useRef } from "react"
@@ -28,6 +27,7 @@ interface Tour {
   duration_hours: number
   min_participants: number
   max_participants: number
+  maxBookingsPerDay: number
   difficulty_level: string
   features: string[]
   image_urls: string[]
@@ -131,6 +131,7 @@ export default function ToursManagementPage() {
         duration_hours: activity.duree / 60,
         min_participants: activity.nbMinPersonne,
         max_participants: activity.nbMaxPersonne,
+        maxBookingsPerDay: activity.maxBookingsPerDay || 10,
         difficulty_level: mapTrancheAgeToDifficulty(activity.trancheAge),
         features: activity.included || [],
         image_urls: activity.images
@@ -184,6 +185,7 @@ export default function ToursManagementPage() {
       formData.append("duree", Math.round(tourData.duration_hours * 60).toString())
       formData.append("nbMinPersonne", tourData.min_participants.toString())
       formData.append("nbMaxPersonne", tourData.max_participants.toString())
+      formData.append("maxBookingsPerDay", tourData.maxBookingsPerDay.toString())
       formData.append("trancheAge", mapDifficultyToTrancheAge(tourData.difficulty_level))
       formData.append("description", tourData.description)
       tourData.features.forEach(feature => formData.append("included", feature))
@@ -210,6 +212,7 @@ export default function ToursManagementPage() {
         duration_hours: newTour.duree / 60,
         min_participants: newTour.nbMinPersonne,
         max_participants: newTour.nbMaxPersonne,
+        maxBookingsPerDay: newTour.maxBookingsPerDay || 10,
         difficulty_level: mapTrancheAgeToDifficulty(newTour.trancheAge),
         features: newTour.included || [],
         image_urls: newTour.images
@@ -251,6 +254,7 @@ export default function ToursManagementPage() {
       formData.append("duree", Math.round((updates.duration_hours !== undefined ? updates.duration_hours : tour.duration_hours) * 60).toString())
       formData.append("nbMinPersonne", (updates.min_participants !== undefined ? updates.min_participants : tour.min_participants).toString())
       formData.append("nbMaxPersonne", (updates.max_participants !== undefined ? updates.max_participants : tour.max_participants).toString())
+      formData.append("maxBookingsPerDay", (updates.maxBookingsPerDay !== undefined ? updates.maxBookingsPerDay : tour.maxBookingsPerDay).toString())
       formData.append("trancheAge", updates.difficulty_level ? mapDifficultyToTrancheAge(updates.difficulty_level) : tour.difficulty_level ? mapDifficultyToTrancheAge(tour.difficulty_level) : "12-60")
       formData.append("description", updates.description || tour.description)
       const features = updates.features || tour.features
@@ -284,6 +288,7 @@ export default function ToursManagementPage() {
         duration_hours: updatedTour.duree / 60,
         min_participants: updatedTour.nbMinPersonne,
         max_participants: updatedTour.nbMaxPersonne,
+        maxBookingsPerDay: updatedTour.maxBookingsPerDay || 10,
         difficulty_level: mapTrancheAgeToDifficulty(updatedTour.trancheAge),
         features: updatedTour.included || [],
         image_urls: updatedTour.images
@@ -588,16 +593,22 @@ function TourDetailsView({ tour }: TourDetailsViewProps) {
           <p className="text-sm text-gray-900">{tour.min_participants}-{tour.max_participants}</p>
         </div>
         <div>
+          <Label className="text-sm font-medium text-gray-600">Max Bookings Per Day</Label>
+          <p className="text-sm text-gray-900">{tour.maxBookingsPerDay}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
           <Label className="text-sm font-medium text-gray-600">Difficulté</Label>
           <Badge className={getDifficultyBadgeColor(tour.difficulty_level)}>
             {getDifficultyLabel(tour.difficulty_level)}
           </Badge>
         </div>
-      </div>
-
-      <div>
-        <Label className="text-sm font-medium text-gray-600">Lieu</Label>
-        <p className="text-sm text-gray-900">{tour.location}</p>
+        <div>
+          <Label className="text-sm font-medium text-gray-600">Lieu</Label>
+          <p className="text-sm text-gray-900">{tour.location}</p>
+        </div>
       </div>
 
       {tour.features && tour.features.length > 0 && (
@@ -661,6 +672,7 @@ function TourForm({ tour, onSave, onCancel }: TourFormProps) {
     duration_hours: tour?.duration_hours || 1,
     min_participants: tour?.min_participants || 1,
     max_participants: tour?.max_participants || 8,
+    maxBookingsPerDay: tour?.maxBookingsPerDay || 10,
     difficulty_level: tour?.difficulty_level || "moderate",
     location: tour?.location || "",
     features: tour?.features?.join(", ") || "",
@@ -784,6 +796,17 @@ function TourForm({ tour, onSave, onCancel }: TourFormProps) {
             required
           />
         </div>
+      </div>
+
+      <div>
+        <Label htmlFor="maxBookingsPerDay">Max Bookings Per Day *</Label>
+        <Input
+          id="maxBookingsPerDay"
+          type="number"
+          value={formData.maxBookingsPerDay}
+          onChange={(e) => setFormData({ ...formData, maxBookingsPerDay: Number.parseInt(e.target.value) || 10 })}
+          required
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
