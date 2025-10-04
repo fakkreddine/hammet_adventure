@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator"
 import { Calendar, Users, MapPin, Clock, Tag, Percent,Shield,Camera,Heart ,Award,Check,Star  } from "lucide-react"
 import type { ReservationData } from "@/app/reservation/page"
 import { useState } from "react"
-import { useParams } from "next/navigation"
 
 interface ReservationSummaryStepProps {
   data: ReservationData
@@ -17,29 +16,6 @@ interface ReservationSummaryStepProps {
 }
 
 export function ReservationSummaryStep({ data, onUpdate }: ReservationSummaryStepProps) {
-  const params = useParams();
-  const activityId = params?.id ? Number(params.id) : 1;
-
-  // Function to make reservation API request
-  const makeReservation = async () => {
-    try {
-      const userId = encodeURIComponent(data.account.id);
-      const activityDate = data.date ? encodeURIComponent(new Date(data.date).toISOString()) : '';
-      const nbPersonnes = data.persons;
-      const paymentPercent = 100;
-      const url = `http://localhost:8080/bookings/book?userId=${userId}&activityId=${activityId}&activityDate=${activityDate}&nbPersonnes=${nbPersonnes}&paymentPercent=${paymentPercent}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const result = await response.json();
-      console.log('Reservation API response:', result);
-    } catch (error) {
-      console.error('Error making reservation:', error);
-    }
-  };
   const [promoCode, setPromoCode] = useState(data.promoCode || "")
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)
   const [promoError, setPromoError] = useState("")
@@ -204,11 +180,6 @@ const [selectedImage, setSelectedImage] = useState(0)
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
-      <div className="flex justify-end mt-4">
-        <Button onClick={makeReservation} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold">
-          Confirmer la réservation (API)
-        </Button>
-      </div>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <Card className="backdrop-blur-sm bg-white/95 border-amber-200 shadow-xl">
           <CardHeader className="pb-3 sm:pb-4 md:pb-6">

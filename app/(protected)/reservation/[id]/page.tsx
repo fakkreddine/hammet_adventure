@@ -9,8 +9,8 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react"
 import { AccountSelectionStep } from "@/components/reservation/account-selection-step"
 import { ReservationDetailsStep } from "@/components/reservation/reservation-details-step"
 import { ReservationSummaryStep } from "@/components/reservation/reservation-summary-step"
+import { PaymentStep } from "@/components/reservation/payment-step"
 import { SuccessStep } from "@/components/reservation/success-step"
-import { useParams } from "next/navigation"
 import { AuthWrapper } from "@/components/auth/auth-wrapper"
  import { useAuth } from "@/contexts/auth-context"
 import { se } from "date-fns/locale"
@@ -37,8 +37,6 @@ const steps = [
 ]
 
 export default function ReservationPage() {
-  const params = useParams();
-  const activityId = params?.id ? Number(params.id) : 1;
   const [currentStep, setCurrentStep] = useState(1)
   const { user, loading } = useAuth()
   const [reservationData, setReservationData] = useState<ReservationData>({
@@ -59,32 +57,7 @@ export default function ReservationPage() {
   }
 
 
-  // Function to make reservation API request
-  const makeReservation = async () => {
-    try {
-      const userId = encodeURIComponent(reservationData.account.id);
-      const activityDate = reservationData.date ? encodeURIComponent(new Date(reservationData.date).toISOString()) : '';
-      const nbPersonnes = reservationData.persons;
-      const paymentPercent = 100;
-      const url = `http://localhost:8080/bookings/book?userId=${userId}&activityId=${activityId}&activityDate=${activityDate}&nbPersonnes=${nbPersonnes}&paymentPercent=${paymentPercent}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const result = await response.json();
-      console.log('Reservation API response:', result);
-    } catch (error) {
-      console.error('Error making reservation:', error);
-    }
-  };
-
-  const nextStep = async () => {
-    // If on summary step (step 3), make reservation before moving to success
-    if (currentStep === 3) {
-      await makeReservation();
-    }
+  const nextStep = () => {
     if (currentStep < 4) {
       setCurrentStep((prev) => prev + 1)
     }
