@@ -11,7 +11,7 @@ export function HeroSection() {
       <div
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: `url('/tunisian-desert-quad-bikes.png')`,
+          backgroundImage: `url('/banner.png')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",

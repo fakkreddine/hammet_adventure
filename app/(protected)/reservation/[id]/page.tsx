@@ -9,12 +9,11 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react"
 import { AccountSelectionStep } from "@/components/reservation/account-selection-step"
 import { ReservationDetailsStep } from "@/components/reservation/reservation-details-step"
 import { ReservationSummaryStep } from "@/components/reservation/reservation-summary-step"
-import { PaymentStep } from "@/components/reservation/payment-step"
 import { SuccessStep } from "@/components/reservation/success-step"
+import { useParams } from "next/navigation"
 import { AuthWrapper } from "@/components/auth/auth-wrapper"
- import { useAuth } from "@/contexts/auth-context"
-import { se } from "date-fns/locale"
-import { redirect } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
+
 export interface ReservationData {
   account: {
     id: string
@@ -24,10 +23,12 @@ export interface ReservationData {
   }
   persons: number
   date: Date | null
-  paymentOption: "now" | "spot" | ""
+  timeSlot?: string
+  paymentOption: "now" 
   paymentMethod: string
   promoCode?: string
   discount?: number
+  bookingId?: string
 }
 
 const steps = [
@@ -37,6 +38,8 @@ const steps = [
 ]
 
 export default function ReservationPage() {
+  const params = useParams();
+  const activityId = params?.id ? Number(params.id) : 1;
   const [currentStep, setCurrentStep] = useState(1)
   const { user, loading } = useAuth()
   const [reservationData, setReservationData] = useState<ReservationData>({
@@ -48,18 +51,99 @@ export default function ReservationPage() {
     },
     persons: 0,
     date: null,
-    paymentOption: "",
+    timeSlot: "",
+    paymentOption: "now",
     paymentMethod: "",
   })
+  const [isMakingReservation, setIsMakingReservation] = useState(false)
 
   const updateReservationData = (data: Partial<ReservationData>) => {
     setReservationData((prev) => ({ ...prev, ...data }))
   }
 
+  // Function to make reservation API request
+  const makeReservation = async (): Promise<string | null> => {
+    try {
+      console.log("Starting reservation process...");
+      console.log("Reservation data:", reservationData);
+      
+      const userId = encodeURIComponent(reservationData.account.id);
+      
+      // Format the date and time properly
+      let activityDate = '';
+      if (reservationData.date && reservationData.timeSlot) {
+        const date = new Date(reservationData.date);
+        // Extract start time from timeSlot (e.g., "09:00-11:00" -> "09:00")
+        const startTime = reservationData.timeSlot.split('-')[0];
+        const [hours, minutes] = startTime.split(':').map(Number);
+        date.setHours(hours, minutes, 0, 0);
+        activityDate = encodeURIComponent(date.toISOString());
+      } else if (reservationData.date) {
+        activityDate = encodeURIComponent(new Date(reservationData.date).toISOString());
+      }
 
-  const nextStep = () => {
-    if (currentStep < 4) {
-      setCurrentStep((prev) => prev + 1)
+      const nbPersonnes = reservationData.persons;
+      const paymentPercent = 100;
+      const timeSlot = reservationData.timeSlot ? encodeURIComponent(reservationData.timeSlot) : '';
+
+      const url = `http://localhost:8080/bookings/book?userId=${userId}&activityId=${activityId}&activityDate=${activityDate}&nbPersonnes=${nbPersonnes}&paymentPercent=${paymentPercent}&timeSlot=${timeSlot}`;
+      
+      console.log("Making API call to:", url);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Reservation API response:', result);
+      
+      // Return the bookingId directly
+      return result.bookingId || result.id || null;
+    } catch (error) {
+      console.error('Error making reservation:', error);
+      throw error;
+    }
+  };
+
+  const nextStep = async () => {
+    // If on summary step (step 3), make reservation before moving to success
+    if (currentStep === 3) {
+      setIsMakingReservation(true);
+      try {
+        const bookingId = await makeReservation();
+        console.log("Received bookingId:", bookingId);
+        
+        if (bookingId) {
+          // Update the reservation data with the bookingId
+          updateReservationData({ bookingId });
+          console.log("Updated reservation data with bookingId:", bookingId);
+          
+          // Wait a bit for state to update, then move to success step
+          setTimeout(() => {
+            setCurrentStep(4);
+            setIsMakingReservation(false);
+          }, 100);
+        } else {
+          console.error("No bookingId received from API");
+          alert("Erreur: Aucun numéro de réservation reçu. Veuillez réessayer.");
+          setIsMakingReservation(false);
+        }
+      } catch (error) {
+        console.error("Failed to make reservation:", error);
+        alert("Erreur lors de la réservation. Veuillez réessayer.");
+        setIsMakingReservation(false);
+      }
+    } else {
+      if (currentStep < 4) {
+        setCurrentStep((prev) => prev + 1)
+      }
     }
   }
 
@@ -70,11 +154,15 @@ export default function ReservationPage() {
   }
 
   const canProceed = () => {
+    if (currentStep === 3 && isMakingReservation) {
+      return false; // Disable button while making reservation
+    }
+    
     switch (currentStep) {
       case 1:
         return !!reservationData.account
       case 2:
-        return reservationData.persons > 0 && reservationData.date
+        return reservationData.persons > 0 && reservationData.date && !!reservationData.timeSlot
       case 3:
         return true
       default:
@@ -84,8 +172,6 @@ export default function ReservationPage() {
 
   const progressPercentage = currentStep === 4 ? 100 : (currentStep / steps.length) * 100
 
-
-  // No payment step, so no handlePaymentConfirm needed
   useEffect(() => {
     if (!loading && user) { 
       updateReservationData({
@@ -98,140 +184,150 @@ export default function ReservationPage() {
       })
     }
   }, [loading, user]);
-  
+
+  // Debug: log reservation data changes
+  useEffect(() => {
+    console.log("Reservation data updated:", reservationData);
+  }, [reservationData]);
 
   return (
-    <AuthWrapper requireAuth >
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-2 sm:py-4 md:py-6 lg:py-8 px-2 sm:px-4 lg:px-6">
-      <div className="max-w-sm sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto">
-        {/* Header - Enhanced responsiveness */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-4 sm:mb-6 md:mb-8 px-2"
-        >
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-1 sm:mb-2 leading-tight">
-            {currentStep === 5 ? "Réservation Confirmée" : "Processus de Réservation"}
-          </h1>
-          <p className="text-gray-600 text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed">
-            {currentStep === 5
-              ? "Votre réservation a été confirmée avec succès"
-              : "Complétez votre réservation en quelques étapes simples"}
-          </p>
-        </motion.div>
-
-        {/* Progress Indicator - Hide on success page */}
-        {currentStep !== 5 && (
+    <AuthWrapper requireAuth>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-2 sm:py-4 md:py-6 lg:py-8 px-2 sm:px-4 lg:px-6">
+        <div className="max-w-sm sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto">
+          {/* Header - Enhanced responsiveness */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-4 sm:mb-6 md:mb-8"
-          >
-            <Card className="backdrop-blur-sm bg-white/90 border-amber-200 shadow-lg">
-              <CardContent className="p-2 sm:p-4 md:p-6">
-                <div className="flex items-center justify-between mb-2 sm:mb-3 md:mb-4">
-                  {steps.map((step, index) => (
-                    <div key={step.id} className="flex items-center flex-1">
-                      <div className="flex flex-col items-center sm:flex-row sm:items-center">
-                        <div
-                          className={`
-                          flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-full border-2 transition-all duration-300
-                          ${
-                            currentStep >= step.id
-                              ? "bg-amber-500 border-amber-500 text-white shadow-lg"
-                              : "border-gray-300 text-gray-400 bg-white"
-                          }
-                        `}
-                        >
-                          {currentStep > step.id ? (
-                            <Check className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 lg:w-5 lg:h-5" />
-                          ) : (
-                            <span className="font-semibold text-xs sm:text-sm md:text-base">{step.id}</span>
-                          )}
-                        </div>
-                        <div className="mt-1 sm:mt-0 sm:ml-2 md:ml-3 text-center sm:text-left">
-                          <p
-                            className={`font-medium text-xs sm:text-sm md:text-base ${
-                              currentStep >= step.id ? "text-amber-600" : "text-gray-400"
-                            }`}
-                          >
-                            {step.title}
-                          </p>
-                          <p className="text-xs md:text-sm text-gray-500 hidden md:block leading-tight">
-                            {step.description}
-                          </p>
-                        </div>
-                      </div>
-                      {index < steps.length - 1 && (
-                        <div
-                          className={`
-                          flex-1 h-0.5 mx-1 sm:mx-2 md:mx-4 transition-all duration-300 rounded-full
-                          ${currentStep > step.id ? "bg-amber-500" : "bg-gray-300"}
-                        `}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <Progress value={progressPercentage} className="h-1 sm:h-1.5 md:h-2" />
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Step Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="mb-4 sm:mb-6 md:mb-8"
-          >
-            {currentStep === 1 && <AccountSelectionStep data={reservationData} onUpdate={updateReservationData}  forward={nextStep}/>} 
-            {currentStep === 2 && <ReservationDetailsStep data={reservationData} onUpdate={updateReservationData} />} 
-            {currentStep === 3 && <ReservationSummaryStep data={reservationData} onUpdate={updateReservationData} />} 
-            {currentStep === 4 && <SuccessStep data={reservationData} />}
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Navigation - Hide on success page */}
-  {currentStep !== 4 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between space-y-2 sm:space-y-0 sm:space-x-4 px-2 sm:px-0"
+            className="text-center mb-4 sm:mb-6 md:mb-8 px-2"
           >
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 1}
-              className="bg-transparent order-2 sm:order-1 w-full sm:w-auto h-10 sm:h-11 md:h-12 text-sm sm:text-base"
-            >
-              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-              Précédent
-            </Button>
-
-            {currentStep < 4 ? (
-              <Button
-                onClick={nextStep}
-                disabled={!canProceed()}
-                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 order-1 sm:order-2 w-full sm:w-auto h-10 sm:h-11 md:h-12 text-sm sm:text-base font-semibold shadow-lg"
-              >
-                Suivant
-                <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
-              </Button>
-            ) : (
-              <div className="order-1 sm:order-2 w-full sm:w-auto">
-                {/* Payment step handles its own confirmation button */}
-              </div>
-            )}
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-1 sm:mb-2 leading-tight">
+              {currentStep === 4 ? "Réservation Confirmée" : "Processus de Réservation"}
+            </h1>
+            <p className="text-gray-600 text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed">
+              {currentStep === 4
+                ? "Votre réservation a été confirmée avec succès"
+                : "Complétez votre réservation en quelques étapes simples"}
+            </p>
           </motion.div>
-        )}
+
+          {/* Progress Indicator - Hide on success page */}
+          {currentStep !== 4 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-4 sm:mb-6 md:mb-8"
+            >
+              <Card className="backdrop-blur-sm bg-white/90 border-amber-200 shadow-lg">
+                <CardContent className="p-2 sm:p-4 md:p-6">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3 md:mb-4">
+                    {steps.map((step, index) => (
+                      <div key={step.id} className="flex items-center flex-1">
+                        <div className="flex flex-col items-center sm:flex-row sm:items-center">
+                          <div
+                            className={`
+                            flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-full border-2 transition-all duration-300
+                            ${
+                              currentStep >= step.id
+                                ? "bg-amber-500 border-amber-500 text-white shadow-lg"
+                                : "border-gray-300 text-gray-400 bg-white"
+                            }
+                          `}
+                          >
+                            {currentStep > step.id ? (
+                              <Check className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 lg:w-5 lg:h-5" />
+                            ) : (
+                              <span className="font-semibold text-xs sm:text-sm md:text-base">{step.id}</span>
+                            )}
+                          </div>
+                          <div className="mt-1 sm:mt-0 sm:ml-2 md:ml-3 text-center sm:text-left">
+                            <p
+                              className={`font-medium text-xs sm:text-sm md:text-base ${
+                                currentStep >= step.id ? "text-amber-600" : "text-gray-400"
+                              }`}
+                            >
+                              {step.title}
+                            </p>
+                            <p className="text-xs md:text-sm text-gray-500 hidden md:block leading-tight">
+                              {step.description}
+                            </p>
+                          </div>
+                        </div>
+                        {index < steps.length - 1 && (
+                          <div
+                            className={`
+                            flex-1 h-0.5 mx-1 sm:mx-2 md:mx-4 transition-all duration-300 rounded-full
+                            ${currentStep > step.id ? "bg-amber-500" : "bg-gray-300"}
+                          `}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Progress value={progressPercentage} className="h-1 sm:h-1.5 md:h-2" />
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Step Content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="mb-4 sm:mb-6 md:mb-8"
+            >
+              {currentStep === 1 && <AccountSelectionStep data={reservationData} onUpdate={updateReservationData}  forward={nextStep}/>} 
+              {currentStep === 2 && <ReservationDetailsStep data={reservationData} onUpdate={updateReservationData} />} 
+              {currentStep === 3 && <ReservationSummaryStep data={reservationData} onUpdate={updateReservationData} />} 
+              {currentStep === 4 && <SuccessStep data={reservationData} />}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Navigation - Hide on success page */}
+          {currentStep !== 4 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between space-y-2 sm:space-y-0 sm:space-x-4 px-2 sm:px-0"
+            >
+              <Button
+                variant="outline"
+                onClick={prevStep}
+                disabled={currentStep === 1}
+                className="bg-transparent order-2 sm:order-1 w-full sm:w-auto h-10 sm:h-11 md:h-12 text-sm sm:text-base"
+              >
+                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                Précédent
+              </Button>
+
+              {currentStep < 4 ? (
+                <Button
+                  onClick={nextStep}
+                  disabled={!canProceed()}
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 order-1 sm:order-2 w-full sm:w-auto h-10 sm:h-11 md:h-12 text-sm sm:text-base font-semibold shadow-lg"
+                >
+                  {currentStep === 3 && isMakingReservation ? (
+                    "Réservation en cours..."
+                  ) : (
+                    <>
+                      Suivant
+                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <div className="order-1 sm:order-2 w-full sm:w-auto">
+                  {/* Payment step handles its own confirmation button */}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
       </div>
-    </div>
     </AuthWrapper>
   )
 }

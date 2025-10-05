@@ -8,8 +8,23 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Users, Minus, Plus, Lock, User, CalendarDays } from "lucide-react"
-import type { ReservationData } from "@/app/reservation/page"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Users, Minus, Plus, Lock, User, CalendarDays, Clock } from "lucide-react"
+
+interface ReservationData {
+  account: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  date: Date | string | null;
+  persons: number;
+  timeSlot?: string;
+  paymentOption: "now" | "on-site";
+  promoCode?: string;
+  discount?: number;
+}
 
 interface ReservationDetailsStepProps {
   data: ReservationData
@@ -17,7 +32,7 @@ interface ReservationDetailsStepProps {
 }
 
 export function ReservationDetailsStep({ data, onUpdate }: ReservationDetailsStepProps) {
-  const [dateInput, setDateInput] = useState(data.date ? data.date.toISOString().split("T")[0] : "")
+  const [dateInput, setDateInput] = useState(data.date ? (typeof data.date === "string" ? data.date.split("T")[0] : data.date.toISOString().split("T")[0]) : "")
 
   const updatePersons = (change: number) => {
     const newPersons = Math.max(1, data.persons + change)
@@ -34,9 +49,18 @@ export function ReservationDetailsStep({ data, onUpdate }: ReservationDetailsSte
     }
   }
 
+  const handleTimeSlotChange = (timeSlot: string) => {
+    onUpdate({ timeSlot })
+  }
+
+  // Available time slots
+  const timeSlots = [
+    "08:00", "09:00", "10:00", "11:00", 
+    "14:00", "15:00", "16:00", "17:00"
+  ]
+
   const renderPersonDisplay = () => {
     if (data.persons <= 8) {
-      // Show individual person icons for 1-8 people
       return (
         <div className="flex flex-wrap justify-center gap-2 max-w-xs mx-auto">
           {Array.from({ length: data.persons }).map((_, i) => (
@@ -53,7 +77,6 @@ export function ReservationDetailsStep({ data, onUpdate }: ReservationDetailsSte
         </div>
       )
     } else {
-      // Show compact display for 9+ people
       return (
         <div className="flex items-center justify-center space-x-2 sm:space-x-4">
           <div className="flex -space-x-2">
@@ -179,6 +202,31 @@ export function ReservationDetailsStep({ data, onUpdate }: ReservationDetailsSte
                     className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg bg-transparent border-amber-200 focus:border-amber-500 focus:ring-amber-500 w-full"
                     placeholder="Sélectionner une date"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Time Slot Selection */}
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Horaire</h3>
+              <div className="relative">
+                <Label htmlFor="reservation-time" className="sr-only">
+                  Horaire de réservation
+                </Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-amber-600 z-10" />
+                  <Select value={data.timeSlot || ""} onValueChange={handleTimeSlotChange}>
+                    <SelectTrigger className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg bg-transparent border-amber-200 focus:border-amber-500 focus:ring-amber-500 w-full">
+                      <SelectValue placeholder="Sélectionner un horaire" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeSlots.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
