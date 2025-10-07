@@ -37,11 +37,11 @@ export function Header() {
           transition={{ duration: 0.5 }}
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg">
-            <span className="text-lg font-bold">CQ</span>
+            <span className="text-lg font-bold">HA</span>
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-lg font-bold text-foreground">Carthage Quad</h1>
-            <p className="text-xs text-muted-foreground">HAMMAMET ADVENTURES</p>
+            <h1 className="text-lg font-bold text-foreground">HAMMAMET ADVENTURES</h1>
+            <p className="text-xs text-muted-foreground">carthage quad</p>
           </div>
         </motion.div>
 

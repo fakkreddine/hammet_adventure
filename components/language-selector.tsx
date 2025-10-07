@@ -70,7 +70,7 @@ export function LanguageSelector() {
 
   return (
     <div style={{ display: 'inline-block' }}>
-      <select onChange={handleChange} defaultValue="en">
+      <select onChange={handleChange} defaultValue="fr">
         <option value="en">English</option>
         <option value="fr">Français</option>
         <option value="ar">العربية</option>

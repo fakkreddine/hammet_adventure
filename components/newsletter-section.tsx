@@ -65,10 +65,11 @@ export function NewsletterSection() {
                   className="relative h-64 lg:h-auto"
                 >
                   <img
-                    src="/tunisian-quad-bike-adventure-newsletter.png"
-                    alt="Adventure Newsletter"
-                    className="w-full h-full object-cover"
-                  />
+  src="/nassim.JPG"
+  alt="Adventure Newsletter"
+  className="max-w-[250px] max-h-[10000px] object-contain rounded-lg"
+/>
+
                   <div className="absolute inset-0 bg-gradient-to-l from-primary/20 to-transparent" />
 
                   {/* Floating Elements */}
